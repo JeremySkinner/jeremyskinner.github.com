@@ -1,0 +1,168 @@
+---
+layout: post
+title: "Using SagePay with ASP.NET MVC"
+category: .NET
+postId: 218
+---
+<p>
+Yesterday I posted about <a href="http://www.jeremyskinner.co.uk/2009/09/26/how-not-to-write-a-web-application-the-sagepay-net-integration-kit/">the SagePay .NET integration kit</a> and how frustrating it was to try and integrate this into an ASP.NET MVC-based application.
+</p>
+<p>
+Rather than wasting the time converting their sample code from VB to C#, removing the MySql references and de-coupling it from WebForms we decided it would be quicker to write our own implementation of SagePay's VSP Server protocol.
+</p>
+<p>
+This is now available in the form of the <a href="http://github.com/JeremySkinner/SagePayMvc">SagePayMvc library on GitHub</a> and released under the Apache 2 license. 
+</p>
+<h2>Great! How do we use it?</h2>
+<p>
+The first thing you'll need to do is download the source from github and build the solution. Once we've given the project some more testing I'll create a binary release, but for now you have to compile it yourself.
+</p>
+<p>
+Once compiled, add a reference to <strong>SagePayMvc.dll</strong> to your project. 
+</p>
+<h2>Configuration</h2>
+<p>
+Next, you'll need to add the relevant configuration section to your web.config:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="xml" style="font-family:monospace;"><span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;configuration<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+	<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;configSections<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+		<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;section</span> <span style="color: #000066;">name</span>=<span style="color: #ff0000;">&quot;sagePay&quot;</span> <span style="color: #000066;">type</span>=<span style="color: #ff0000;">&quot;System.Configuration.NameValueSectionHandler&quot;</span><span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+	<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/configSections<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+	<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;sagePay<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+		<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;add</span> <span style="color: #000066;">key</span>=<span style="color: #ff0000;">&quot;NotificationHostName&quot;</span> <span style="color: #000066;">value</span>=<span style="color: #ff0000;">&quot;my_site_hostname.com&quot;</span><span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+		<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;add</span> <span style="color: #000066;">key</span>=<span style="color: #ff0000;">&quot;VatMultiplier&quot;</span> <span style="color: #000066;">value</span>=<span style="color: #ff0000;">&quot;1.15&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+		<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;add</span> <span style="color: #000066;">key</span>=<span style="color: #ff0000;">&quot;VendorName&quot;</span> <span style="color: #000066;">value</span>=<span style="color: #ff0000;">&quot;MyVendorName&quot;</span><span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+		<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;add</span> <span style="color: #000066;">key</span>=<span style="color: #ff0000;">&quot;Mode&quot;</span> <span style="color: #000066;">value</span>=<span style="color: #ff0000;">&quot;Simulator&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+	<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/sagePay<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+        ...
+<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/configuration<span style="color: #000000; font-weight: bold;">&gt;</span></span></span></pre></div></div>
+
+
+
+<p>
+The above four settings are required:
+</p>
+<ul>
+<li><strong>NotificationHostName</strong> - The public-facing hostname that SagePay should use when sending HTTP posts containing payment notifications (the controller and action that should be posted to will be generated using the ASP.NET routing infrastructure - the default controller name is <strong>PaymentResponse</strong> and the default action is <strong>Index</strong>. These can be overriden).
+<li><strong>VatMultiplier</strong> - The multiplier to use when calculating VAT.</li>
+<li><strong>VendorName</strong> - Your SagePay Vendor name.</li>
+<li><strong>Mode</strong> - The server that you will be connecting to (Simulator, Test or Live).</li>
+</ul>
+<p>
+There are are additional settings too, but these are not required. At some point in the next couple of weeks I'll be putting together some more detailed documentation on all the settings. 
+</p>
+<p>
+The configuration can also be set up programatically by calling <strong>Configuration.Configure</strong> and passing in an instance of the <strong>Configuration</strong> class. 
+</p>
+<h2>Registering a Transaction</h2>
+<p>
+When you are ready to make a transaction, you need to call the <strong>Send</strong> method on the <strong>TransactionRegistrar</strong> object. This takes several parameters - the current RequestContext (used to generate URLs), a "vendor TX code" (SagePay's name for a unique transaction id), an instance of a <strong>ShoppingBasket</strong> object, an the customer's email address and two instances of the <strong>Address</strong> object (one for shipping, one for billing).
+</p>
+<p>
+This will then build the HTTP POST in the format required by SagePay's protocol, send it and then deserialize the response into a <strong>TransactionRegistrationResponse</strong> object which contains information on whether the transaction registration succeeded etc. The code from our system looks something like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> TransactionService <span style="color: #008000;">:</span> ITransactionSerivce <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">readonly</span> ITransactionRegistrar transactionRegistrar<span style="color: #008000;">;</span>
+	<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">readonly</span> Configuration configuration<span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> TransactionService<span style="color: #000000;">&#40;</span>ITransactionRegistrar transactionRegistrar, Configuration config<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">transactionRegistrar</span> <span style="color: #008000;">=</span> transactionRegistrar<span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">config</span> <span style="color: #008000;">=</span> config<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> TransactionRegistrationResponse SendTransaction<span style="color: #000000;">&#40;</span>Order order, Customer customer, RequestContext context<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var basket <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> ShoppingBasket<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Shopping basket for &quot;</span> <span style="color: #008000;">+</span> customer.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #008080; font-style: italic;">//fill the basket</span>
+		<span style="color: #0600FF;">foreach</span><span style="color: #000000;">&#40;</span>var orderDetail <span style="color: #0600FF;">in</span> order.<span style="color: #0000FF;">OrderDetail</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			var basketItem <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> BasketItem<span style="color: #000000;">&#40;</span>
+				orderDetail.<span style="color: #0000FF;">Quantity</span>, orderDetail.<span style="color: #0000FF;">Product</span>.<span style="color: #0000FF;">Description</span>, 
+				orderDetail.<span style="color: #0000FF;">Product</span>.<span style="color: #0000FF;">Price</span>, config.<span style="color: #0000FF;">VatMultiplier</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+			basket.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span>basketItem<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+		var address <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> Address <span style="color: #000000;">&#123;</span> 
+			Surname <span style="color: #008000;">=</span> customer.<span style="color: #0000FF;">Surname</span>,
+			Firstnames <span style="color: #008000;">=</span> customer.<span style="color: #0000FF;">Forename</span>,
+			Address1 <span style="color: #008000;">=</span> customer.<span style="color: #0000FF;">Address</span>.<span style="color: #0000FF;">Property</span>,
+			Address2 <span style="color: #008000;">=</span> customer.<span style="color: #0000FF;">Address</span>.<span style="color: #0000FF;">District</span>,
+			City <span style="color: #008000;">=</span> customer.<span style="color: #0000FF;">Address</span>.<span style="color: #0000FF;">PostalTown</span>,
+			Country <span style="color: #008000;">=</span> customer.<span style="color: #0000FF;">Address</span>.<span style="color: #0000FF;">Country</span>,
+			Phone <span style="color: #008000;">=</span> customer.<span style="color: #0000FF;">Address</span>.<span style="color: #0000FF;">Telephone</span>,
+			PostCode <span style="color: #008000;">=</span> customer.<span style="color: #0000FF;">Address</span>.<span style="color: #0000FF;">Postcode</span>
+		<span style="color: #000000;">&#125;</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #008080; font-style: italic;">//Always specify same address for billing/shipping as there is no physical shipping of products</span>
+&nbsp;
+		var response <span style="color: #008000;">=</span> transactionRegistrar.<span style="color: #0000FF;">Send</span><span style="color: #000000;">&#40;</span>context, order.<span style="color: #0000FF;">OrderId</span>, basket, address, address, customer.<span style="color: #0000FF;">Address</span>.<span style="color: #0000FF;">Email</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span>response.<span style="color: #0000FF;">Status</span> <span style="color: #008000;">!=</span> ResponseType.<span style="color: #0000FF;">Ok</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #FF0000;">string</span> error <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;Transaction {0} did not register successfully. Status returned was {1} ({2})&quot;</span><span style="color: #008000;">;</span>
+			error <span style="color: #008000;">=</span> <span style="color: #FF0000;">string</span>.<span style="color: #0000FF;">Format</span><span style="color: #000000;">&#40;</span>error, order.<span style="color: #0000FF;">OrderId</span>, response.<span style="color: #0000FF;">Status</span>, response.<span style="color: #0000FF;">StatusDetail</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+			<span style="color: #0600FF;">throw</span> <span style="color: #008000;">new</span> TransactionRegistrationException<span style="color: #000000;">&#40;</span>error<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+		<span style="color: #008080; font-style: italic;">//Update properties on the order object</span>
+		order.<span style="color: #0000FF;">SecurityKey</span> <span style="color: #008000;">=</span> response.<span style="color: #0000FF;">SecurityKey</span><span style="color: #008000;">;</span>
+		<span style="color: #008080; font-style: italic;">//etc, etc</span>
+&nbsp;
+		<span style="color: #0600FF;">return</span> response<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Note that the ITransactionRegistrar is DI friendly, although use of a container is not required.
+</p>
+<h2>Receiving the Response</h2>
+<p>
+After the customer has then entered his/her payment details on the SagePay site, SagePay will send a response back to the NotificationUrl. This is generated from the configuration based on the NotificationHostName, NotificationController and NotificationAction. Our notification controller looks something like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PaymentResponseController <span style="color: #008000;">:</span> Controller <span style="color: #000000;">&#123;</span>
+	IRepository repository<span style="color: #008000;">;</span>
+	Configuration configuration<span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> PaymentResponseController<span style="color: #000000;">&#40;</span>IRepository repository, Configuration configuration<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">repository</span> <span style="color: #008000;">=</span> repository<span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">configuration</span> <span style="color: #008000;">=</span> configuration<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #000000;">&#91;</span>AcceptVerbs<span style="color: #000000;">&#40;</span>HttpVerbs.<span style="color: #0000FF;">Post</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span>
+	<span style="color: #0600FF;">public</span> ActionResult Index<span style="color: #000000;">&#40;</span>SagePayResponse response<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+&nbsp;
+		<span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">string</span>.<span style="color: #0000FF;">IsNullOrEmpty</span><span style="color: #000000;">&#40;</span>response.<span style="color: #0000FF;">VendorTxCode</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">return</span> <span style="color: #008000;">new</span> ErrorResult<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+		var order <span style="color: #008000;">=</span> repository.<span style="color: #0000FF;">FindById</span><span style="color: #008000;">&lt;</span>OrderHeaderEntity<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span>response.<span style="color: #0000FF;">VendorTxCode</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span>order <span style="color: #008000;">==</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">return</span> <span style="color: #008000;">new</span> TransactionNotFoundResult<span style="color: #000000;">&#40;</span>response.<span style="color: #0000FF;">VendorTxCode</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>				
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+		<span style="color: #008080; font-style: italic;">//*Snip* Update the order instance with the values on the SagePayResponse object. </span>
+&nbsp;
+		<span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">!</span> response.<span style="color: #0000FF;">IsSignatureValid</span><span style="color: #000000;">&#40;</span>order.<span style="color: #0000FF;">SecurityKey</span>, configuration.<span style="color: #0000FF;">VendorName</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">return</span> <span style="color: #008000;">new</span> InvalidSignatureResult<span style="color: #000000;">&#40;</span>response.<span style="color: #0000FF;">VendorTxCode</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+		<span style="color: #0600FF;">return</span> <span style="color: #008000;">new</span> ValidOrderResult<span style="color: #000000;">&#40;</span>order.<span style="color: #0000FF;">OrderId</span>, response<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Note that the a custom IModelBinder implementation (part of SagePayMvc) is responsible for taking the post data and deserializing it into a SagePayResponse object which is available to the controller action as an argument. We're also using several custom ActionResult classes that are part of the SagePayMvc library. These deal with generating the correctly formatted response that the SagePay protocol requires. In SagePay's own kit, you have to manually write out the correct data to the response stream.
+</p>
+<p>
+If you're thinking of using SagePay to handle payments from an ASP.NET MVC application, feel free to check out the <a href="http://github.com/JeremySkinner/SagePayMvc">SagePayMvc code from github.</a>
+</p>

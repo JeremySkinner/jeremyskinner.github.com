@@ -1,0 +1,105 @@
+---
+layout: post
+title: "Using ModelState with MvcContrib's Fluent HTML Helpers"
+category: .NET
+postId: 71
+---
+<h3>What is ModelState?</h3>
+<p>
+The ASP.NET MVC ModelState dictionary allows you to record validation errors which can then be displayed in your web page.
+</p>
+<p>For example, imagine you add a textbox to a page using the MVC framework's built-in HTML helpers, then this will render a standard text field:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;">Your name: <span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">TextBox</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;Name&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+<p>In your controller, if you add an error to the ModelState dictionary with the same name as the textbox, then the HTML helper will change the styling of the input field by adding a css class of "input-validation-error". </p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> HomeController <span style="color: #008000;">:</span> Controller <span style="color: #000000;">&#123;</span>
+   <span style="color: #0600FF;">public</span> ActionResult Index<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+       ModelState.<span style="color: #0000FF;">AddModelError</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Name&quot;</span>, <span style="color: #666666;">&quot;Please enter a name&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+       <span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> MyViewModel <span style="color: #000000;">&#123;</span> Name <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;&quot;</span> <span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+Using the default ASP.NET MVC template, it will add a red border with a light pink background:</p>
+<p><img src="/files/textbox-error.png" alt="Textbox error" style="border:1px solid #bebebe" /></p>
+<p>
+You can also display the actual validation errors by making use of the ValidationSummary helper:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">ValidationSummary</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span>
+Enter your name: <span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">TextBox</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;Name&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+<p>Which will display something like this:</p>
+<p><img src="/files/textbox-validationsummary.png" style="border:1px solid #bebebe" alt="Validation Summary" /></p>
+<h3>ModelState with FluentHtml</h3>
+<p>
+By default, the Fluent HTML helpers in MvcContrib do not have support for ModelState. However, it is very easy to add support for this by writing a custom MemberBehaviour (I previously wrote about extending the HTML helpers with MemberBehaviors  <a href="http://www.jeremyskinner.co.uk/2008/12/13/integrating-fluentvalidation-with-mvccontribs-fluent-html-helpers/">here</a>)
+</p>
+<p>
+Here is the implementation of the ModelStateMemberBehavior class:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> ModelStateMemberBehavior <span style="color: #008000;">:</span> IMemberBehavior <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">readonly</span> ModelStateDictionary modelState<span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> ModelStateMemberBehavior<span style="color: #000000;">&#40;</span>ModelStateDictionary modelState<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">modelState</span> <span style="color: #008000;">=</span> modelState<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> Execute<span style="color: #000000;">&#40;</span>IMemberElement element<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		ModelState state<span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>element.<span style="color: #0000FF;">Builder</span>.<span style="color: #0000FF;">Attributes</span>.<span style="color: #0000FF;">ContainsKey</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;name&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>modelState.<span style="color: #0000FF;">TryGetValue</span><span style="color: #000000;">&#40;</span>element.<span style="color: #0000FF;">Builder</span>.<span style="color: #0000FF;">Attributes</span><span style="color: #000000;">&#91;</span><span style="color: #666666;">&quot;name&quot;</span><span style="color: #000000;">&#93;</span>, <span style="color: #0600FF;">out</span> state<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+				element.<span style="color: #0000FF;">Builder</span>.<span style="color: #0000FF;">AddCssClass</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;input-validation-error&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+			<span style="color: #000000;">&#125;</span>
+		<span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>This class will check whether the name of the element being rendered is present in the specified ModelState dictionary. If so, it will add a css class of "input-validation-error" to the element being rendered.</p>
+
+<p>
+Now we need to hook this into the HTML helpers. This can be done by implementing the IViewModelContainer interface on your base View Page:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> MyBaseViewPage<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> <span style="color: #008000;">:</span> ViewPage<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span>, IViewModelContainer<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span> <span style="color: #000000;">&#123;</span>
+   <span style="color: #0600FF;">private</span> List<span style="color: #008000;">&lt;</span>IMemberBehavior<span style="color: #008000;">&gt;</span> memberBehaviors <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> List<span style="color: #008000;">&lt;</span>IMemberBehavior<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+   <span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">override</span> <span style="color: #0600FF;">void</span> SetViewData<span style="color: #000000;">&#40;</span>ViewDataDictionary viewData<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      <span style="color: #0600FF;">base</span>.<span style="color: #0000FF;">SetViewData</span><span style="color: #000000;">&#40;</span>viewData<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+      behaviors.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> ModelStateMemberBehavior<span style="color: #000000;">&#40;</span>ViewData.<span style="color: #0000FF;">ModelState</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+&nbsp;
+   <span style="color: #0600FF;">public</span> T ViewModel <span style="color: #000000;">&#123;</span>
+      get <span style="color: #000000;">&#123;</span> <span style="color: #0600FF;">return</span> ViewData.<span style="color: #0000FF;">Model</span><span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+   <span style="color: #000000;">&#125;</span>
+&nbsp;
+   <span style="color: #0600FF;">public</span> IEnumerable<span style="color: #008000;">&lt;</span>IMemberBehavior<span style="color: #008000;">&gt;</span> MemberBehaviors <span style="color: #000000;">&#123;</span>
+	get <span style="color: #000000;">&#123;</span> <span style="color: #0600FF;">return</span> memberBehaviors<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>Now, so long as all your view pages inherit from MyBaseViewPage<T>, any calls to the fluent HTML helpers will have support for ModelState:</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;">Your name: <span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> this.<span style="color: #9900cc;">TextBox</span><span style="color: #006600; font-weight:bold;">&#40;</span>model <span style="color: #006600; font-weight: bold;">=&gt;</span> model.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+

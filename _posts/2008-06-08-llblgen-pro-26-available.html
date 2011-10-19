@@ -1,0 +1,74 @@
+---
+layout: post
+title: "LLBLGen Pro 2.6 Available"
+category: .NET
+postId: 31
+---
+<p>Version 2.6 of my favourite Object Relational Mapper, <a href="http://llblgen.com">LLBLGen Pro</a>, is now available.</p>
+<p>
+The main addition to V2.6 is support for a full Linq provider, so writing queries in LLBLGen just became a lot easier. V2.6 also includes a new Prefetching API which I wrote during the 2.6 beta period, which <a href="http://weblogs.asp.net/fbouma">Frans</a> then included in the product.</p>
+<p>
+For example, to eagerly load a Customer -&gt; Orders relationship prior to v2.6, you'd have to do something like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">EntityCollection<span style="color: #008000;">&lt;</span>CustomerEntity<span style="color: #008000;">&gt;</span> customers <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> EntityCollection<span style="color: #008000;">&lt;</span>CustomerEntity<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> CustomerEntityFactory<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+PrefetchPath2 prefetcher <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> PrefetchPath2<span style="color: #000000;">&#40;</span>EntityType.<span style="color: #0000FF;">Customer</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+prefetcher.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span>CustomerEntity.<span style="color: #0000FF;">PrefetchPathOrders</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+<span style="color: #0600FF;">using</span><span style="color: #000000;">&#40;</span>DataAccessAdapter adapter <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> DataAccessAdapter<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	adapter.<span style="color: #0000FF;">FetchEntityCollection</span><span style="color: #000000;">&#40;</span>customers, <span style="color: #0600FF;">null</span>, prefetcher<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>Now, with the lambda prefetching API you can do this:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">using</span><span style="color: #000000;">&#40;</span>var adapter <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> DataAccessAdapter<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	var linq <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> LinqMetaData<span style="color: #000000;">&#40;</span>adapter<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	var customers <span style="color: #008000;">=</span> <span style="color: #000000;">&#40;</span>from c <span style="color: #0600FF;">in</span> linq.<span style="color: #0000FF;">Customers</span> select c<span style="color: #000000;">&#41;</span>
+				.<span style="color: #0000FF;">WithPath</span><span style="color: #000000;">&#40;</span>path <span style="color: #008000;">=&gt;</span> path.<span style="color: #0000FF;">Prefetch</span><span style="color: #000000;">&#40;</span>c <span style="color: #008000;">=&gt;</span> c.<span style="color: #0000FF;">Orders</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Likewise, if you wanted to filter the prefetched orders (eg, only return orders costing more than £10) and prefetch each order's OrderDetail, you'd need to do something like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">EntityCollection<span style="color: #008000;">&lt;</span>CustomerEntity<span style="color: #008000;">&gt;</span> customers <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> EntityCollection<span style="color: #008000;">&lt;</span>CustomerEntity<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> CustomerEntityFactory<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+PrefetchPath2 prefetcher <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> PrefetchPath2<span style="color: #000000;">&#40;</span>EntityType.<span style="color: #0000FF;">Customer</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+prefetcher.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span>CustomerEntity.<span style="color: #0000FF;">PrefetchPathOrders</span>, <span style="color: #FF0000;">0</span>, <span style="color: #008000;">new</span> PredicateExpression<span style="color: #000000;">&#40;</span>OrderFields.<span style="color: #0000FF;">TotalCost</span> <span style="color: #008000;">&gt;</span> <span style="color: #FF0000;">10</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>
+	.<span style="color: #0000FF;">SubPath</span>.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span>OrderEntity.<span style="color: #0000FF;">PrefetchPathOrderDetail</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+<span style="color: #0600FF;">using</span><span style="color: #000000;">&#40;</span>DataAccessAdapter adapter <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> DataAccessAdapter<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	adapter.<span style="color: #0000FF;">FetchEntityCollection</span><span style="color: #000000;">&#40;</span>customers, <span style="color: #0600FF;">null</span>, prefetcher<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+...while now you can do this:
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">using</span><span style="color: #000000;">&#40;</span>var adapter <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> DataAccessAdapter<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	var linq <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> LinqMetaData<span style="color: #000000;">&#40;</span>adapter<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	var customers <span style="color: #008000;">=</span> <span style="color: #000000;">&#40;</span>from c <span style="color: #0600FF;">in</span> linq.<span style="color: #0000FF;">Customers</span> select c<span style="color: #000000;">&#41;</span>
+				.<span style="color: #0000FF;">WithPath</span><span style="color: #000000;">&#40;</span>path <span style="color: #008000;">=&gt;</span>
+					path.<span style="color: #0000FF;">Prefetch</span><span style="color: #008000;">&lt;</span>OrderEntity<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span>c <span style="color: #008000;">=&gt;</span> c.<span style="color: #0000FF;">Orders</span><span style="color: #000000;">&#41;</span>
+						.<span style="color: #0000FF;">FilterOn</span><span style="color: #000000;">&#40;</span>o <span style="color: #008000;">=&gt;</span> o.<span style="color: #0000FF;">TotalCost</span> <span style="color: #008000;">&gt;</span> <span style="color: #FF0000;">10</span><span style="color: #000000;">&#41;</span>
+						.<span style="color: #0000FF;">SubPath</span><span style="color: #000000;">&#40;</span>orderPath <span style="color: #008000;">=&gt;</span> orderPath.<span style="color: #0000FF;">Prefetch</span><span style="color: #000000;">&#40;</span>o <span style="color: #008000;">=&gt;</span> o.<span style="color: #0000FF;">OrderDetail</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>
+				<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+Lambdas rock :)

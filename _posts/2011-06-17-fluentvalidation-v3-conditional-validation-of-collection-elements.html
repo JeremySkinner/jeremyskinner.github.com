@@ -1,0 +1,48 @@
+---
+layout: post
+title: "FluentValidation v3: Conditional validation of collection elements"
+category: FluentValidation
+postId: 645
+---
+<p>This is part 5 in a series of posts about new features in FluentValidation v3.</p>  <ul>   <li><a href="http://www.jeremyskinner.co.uk/2011/02/03/fluentvalidation-v3-rulesets/">Part 1 – RuleSets</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/02/04/fluentvalidation-v3-customizevalidatorattribute/">Part 2 – CustomizeValidatorAttribute</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/04/28/fluentvalidation-v3-asp-net-mvc-validation-interceptors/">Part 3 – ASP.NET MVC validation interceptors</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/04/29/fluentvalidation-v3-better-handling-of-nullable-types/">Part 4 – Better handling of Nullable Types</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/06/17/fluentvalidation-v3-conditional-validation-of-collection-elements/">Part 5 – Conditional validation of collection elements</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/06/25/fluentvalidation-v3-other-features/">Part 6 – Other Features</a>       <p><!--EndFragment--></p>   </li> </ul>  <p>FluentValidation has supported validation of collection properties since v1.1. By using a child validator, you can indicate that each element in a collection should be validated:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:0f428b40-4313-4051-8413-4bea2bb491ed" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> Person <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> List<span style="color: #008000;">&lt;</span>Order<span style="color: #008000;">&gt;</span> Orders <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> Order <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">decimal</span><span style="color: #008000;">?</span> Amount <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> OrderValidator <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>Order<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> OrderValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+     RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Amount</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GreaterThan</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">0</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PersonValidator <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>Person<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> PersonValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Orders</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">SetValidator</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> OrderValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>With FluentValidation v3, you can now apply a condition to collection validators to indicate only certain items in the collection should be validated. To achieve this, FluentValidation v3 has a new “SetCollectionValidator” method which exposes an additional “Where” method in the fluent interface. It was necessary to introduce this extra method to differentiate SetValidator calls that are setting a child validator for the entire property from those that are validating collection elements.</p>
+
+<p>Using the new feature, we could now only validate those Orders whose Amount is not null:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:c852cc46-9a71-40ee-b6b7-1049fbf60483" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PersonValidator <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>Person<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> PersonValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Orders</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">SetCollectionValidator</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> OrderValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>
+        .<span style="color: #0000FF;">Where</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Amount</span> <span style="color: #008000;">!=</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>

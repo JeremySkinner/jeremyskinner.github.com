@@ -1,0 +1,88 @@
+---
+layout: post
+title: "Rewriting the MvcContrib Grid part 2 - New Syntax"
+category: .NET
+postId: 91
+---
+<p>
+This is part two of a series on the new MvcContrib grid component.
+</p>
+<ul>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/08/rewriting-the-mvccontrib-grid/">Part 1 - Introduction</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/22/rewriting-the-mvccontrib-grid-part-2-new-syntax/">Part 2 - New Syntax</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/23/rewriting-the-mvccontrib-grid-part-3-gridmodels-and-gridrenderers">Part 3 - GridModels and GridRenderes</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/28/mvccontrib-grid-part-4-limitations-of-the-webformsviewengine">Part 4 - Limitations of the WebFormsViewEngine</a></li>
+<li>
+<a href="http://www.jeremyskinner.co.uk/2009/03/01/mvccontrib-grid-part-5-the-action-syntax">Part 5 - The Action Syntax</a>
+</li>
+  <li><a href="http://www.jeremyskinner.co.uk/2010/03/14/mvccontrib-grid-part-6-sorting/">Part 6 – Sorting</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2010/04/27/mvccontrib-grid-part-7-auto-generated-columns/">Part 7 – Auto-generated columns</a>
+</ul>
+<p>
+<strong>Edit: 28 Feb 09</strong> I have removed the use of Partial views in the latest MvcContrib trunk for certain areas where it didn't really make sense. The examples below have been updated to reflect this. 
+</p>
+
+<p>
+The updated version of the MvcContrib grid has a new syntax that uses method chaining and lambda expressions to build a fluent interface. Here is a grid defined with the new syntax:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model.<span style="color: #9900cc;">People</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Columns</span><span style="color: #006600; font-weight:bold;">&#40;</span>column <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Id</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Named</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;Person ID&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">DateOfBirth</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Format</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;{0:d}&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     	<span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span>
+        .<span style="color: #9900cc;">Attributes</span><span style="color: #006600; font-weight:bold;">&#40;</span>style <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #cc0000;">&quot;width:100%&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span>
+     	.<span style="color: #9900cc;">Empty</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;There are no people.&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span>
+     	.<span style="color: #9900cc;">RowStart</span><span style="color: #006600; font-weight:bold;">&#40;</span>row <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #cc0000;">&quot;&lt;tr foo='bar'&gt;&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+<p>Compare this to the same grid defined using the old syntax:</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span>
+  Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model.<span style="color: #9900cc;">People</span>,
+    <span style="color: #0000ff; font-weight: bold;">new</span> Hash<span style="color: #006600; font-weight:bold;">&#40;</span>empty <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #cc0000;">&quot;There are no people&quot;</span>, style <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #cc0000;">&quot;width:100%&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span>,
+    column <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+	column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Id</span>, <span style="color: #cc0000;">&quot;Person Id&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     	column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     	column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">DateOfBirth</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Format</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;{0:d}&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+    <span style="color: #006600; font-weight:bold;">&#125;</span>, sections <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+       sections.<span style="color: #9900cc;">RowStart</span><span style="color: #006600; font-weight:bold;">&#40;</span>item <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span>
+          &lt;tr&gt; &lt;!-- some custom html for the row start here --&gt;
+   <span style="color: #000000; font-weight: bold;">&lt;%</span> <span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+<span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+<p>
+Note how grid options (eg Empty) are now specified as part of the fluent interface rather than part of the HTML Attributes dictionary (which I always felt was messy). The use of method chaining also means that it is no longer possible to embed html blocks inside the grid definition (eg RowStart). However, you can still achieve the same functionality using the <strong>RowStart</strong> method and specifying specifying a lambda that will return the HTML string to output.
+</p>
+<p>The column definitions are almost identical identical.</p>
+
+<h2>Paging support</h2>
+<p>
+Unlike its predecessor, the new grid does not have any logic for dealing with paging. This has all been moved to a separate <strong>Pager</strong> component. The old grid rendered the pager in its footer, while with the new grid you'd need to write your page like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model.<span style="color: #9900cc;">People</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Columns</span><span style="color: #006600; font-weight:bold;">&#40;</span>column <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Id</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Named</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;Person ID&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">DateOfBirth</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Format</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;{0:d}&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+<span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span>
+&nbsp;
+<span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Pager</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model.<span style="color: #9900cc;">People</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+
+
+<h2>Where's the code?</h2>
+<p>
+The code for the new grid is not in the mvccontrib release, so if you want to play with it you'll need to download and build <a href="http://mvccontrib.googlecode.com/svn/trunk">the source</a>. Alternatively, I've put together a custom build that can be <a href="http://www.jeremyskinner.co.uk/files/mvccontrib-r829.zip">downloaded here</a> for the subversion-impaired.
+</p>
+<p>
+In my next post, I'll be focussing on extending the grid by using GridModels and GridRenderers. 
+</p>

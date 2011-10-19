@@ -1,0 +1,17 @@
+---
+layout: post
+title: "Running NHibernate Profiler under IIS7 Integrated Mode"
+category: .NET
+postId: 157
+---
+<p>
+I recently purchased a copy of <a href="http://ayende.com/blog">Ayende's</a> excellent <a href="http://nhprof.com">NHibernate Profiler</a> for use in one of our applications. I followed the instructions to set up the profiler, but the profiler refused to show anything.    
+</p>
+<p>
+Eventually, I narrowed the issue down to the fact that the application was running under IIS7's Integrated pipeline. As soon as I changed the application to run under the Classic pipeline, everything worked correctly. However, I really wanted to be able to run under the integrated pipeline!</p>
+
+<p>After some more poking around I found a workaround. NHProf would work fine under the integrated pipeline <strong>but only if the IIS Worker Process was running as an administrator-level account</strong>.  
+</p>
+<p>
+I still haven't discovered the cause of this problem, but at least I now have a workaround. Strangely, I can't reproduce this issue on any other machines. They all work fine in Integrated mode out of the box.
+</p>

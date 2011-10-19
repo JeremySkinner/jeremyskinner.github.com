@@ -1,0 +1,54 @@
+---
+layout: post
+title: "MvcContrib Grid Part 4 - Limitations of the WebFormsViewEngine"
+category: .NET
+postId: 106
+---
+<p>This is part 4 of a series about the new MvcContrib grid.</p>  <ul>   <li><a href="http://www.jeremyskinner.co.uk/2009/02/08/rewriting-the-mvccontrib-grid/">Part 1 - Introduction</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/02/22/rewriting-the-mvccontrib-grid-part-2-new-syntax/">Part 2 - New Syntax</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/02/23/rewriting-the-mvccontrib-grid-part-3-gridmodels-and-gridrenderers">Part 3 - GridModels and GridRenderes</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/02/28/mvccontrib-grid-part-4-limitations-of-the-webformsviewengine">Part 4 - Limitations of the WebFormsViewEngine</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/03/01/mvccontrib-grid-part-5-the-action-syntax">Part 5 - The Action Syntax</a></li>    <li><a href="http://www.jeremyskinner.co.uk/2010/03/14/mvccontrib-grid-part-6-sorting/">Part 6 – Sorting</a> </li>
+<li><a href="http://www.jeremyskinner.co.uk/2010/04/27/mvccontrib-grid-part-7-auto-generated-columns/">Part 7 – Auto-generated columns</a> </ul>  <p>I was recently asked a question by one of the other MvcContrib comitters, Will Shaver, about why the <strong>ToString</strong> method of the Grid does not return the HTML for the grid, but instead writes the html its internal textwriter and then returns null.</p>  <p>This is the offending piece of code:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:c7dd5ff8-5031-41cd-b4ea-5d1eb497faa4" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> <span style="color: #FF0000;">string</span> ToString<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> 
+<span style="color: #000000;">&#123;</span>
+	_gridModel.<span style="color: #0000FF;">Renderer</span>.<span style="color: #0000FF;">Render</span><span style="color: #000000;">&#40;</span>_gridModel, DataSource, _writer, context<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #0600FF;">return</span> null<span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>This means that when ToString is called on the grid the GridRenderer will render the appropriate HTML to a textwriter (which is actually the HTTP Response output stream). From the end user's perspective, this shouldn't make a difference because it 'appears' that the grid is being rendered at the correct location:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:e8bd4236-74a1-4871-bddd-1cfed8b7bb52" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #008000;">&lt;%=</span> Html.<span style="color: #0000FF;">Grid</span><span style="color: #000000;">&#40;</span>Model.<span style="color: #0000FF;">People</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Columns</span><span style="color: #000000;">&#40;</span>...<span style="color: #000000;">&#41;</span> <span style="color: #008000;">%&gt;</span></pre></div></div>
+
+
+</div>
+
+<p>ToString is implicitly called at the end of the &lt;%= %&gt; block which causes the rendering to occur.</p>
+
+<h2>What a silly way to create some html!</h2>
+
+<p>Yes, it may seem like a strange way of doing things but there is actually a good reason for this. In order to support rendering Partials for parts of the grid it is necessary that the grid is <strong>written directly to the response stream</strong> due to limitations of the WebForms View Engine.</p>
+
+<h2>What about passing a custom TextWriter to IView.Render?</h2>
+
+<p>The ASP.NET MVC IView represents the view that will be rendered. Take a look at the signature for its Render method:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:3c1c523b-d80a-4d72-acd0-ce360811e3c5" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">void</span> Render<span style="color: #000000;">&#40;</span>ViewContext viewContext, TextWriter writer<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+</div>
+
+<p>You might think that it would be possible to pass a StringWriter to the Render method, capture the output of the partial view and then store it internally in the grid. Unfortunately, this isn't possible. I'm guessing the TextWriter parameter here is a hook for a future extensibility point - the current implementation of WebFormView <strong>completely ignores the parameter.</strong> In fact, internally WebFormView has to make use of HttpContext.Current in order to work around the limitation of .aspx/web forms.</p>
+
+<h2>What about the BlockRenderer?</h2>
+
+<p>MvcContrib contains a class called the <a href="http://mvccontrib.googlecode.com/svn/trunk/src/MVCContrib/UI/BlockRenderer.cs">BlockRenderer</a> that can be used to capture the outputs of a view by making use of a Response Filter. While I could have used this approach, it suffers from several major flaws. In order for this approach to work, it is necessary to Flush the response stream before inserting the CapturingResponseFilter. This causes problems if you're trying to do anything funky with HTTP Headers, or even something as simple as trying to set the Content Type. Check out <a href="http://forums.asp.net/p/1376598/2896402.aspx">this post on the MVC Forums</a> for more details. There are other hacks that can be used, but none of them are ideal</p>
+
+<p>In the end I decided the least evil approach was to render to Response.Output from within ToString as it causes the fewest problems for the end user. Hopefully with the release of ASP.NET 4.0 the MVC Team will be allowed to make some changes to the underlying WebForms engine in order to make it possible to capture view output.</p>

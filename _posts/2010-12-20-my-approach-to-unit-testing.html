@@ -1,0 +1,77 @@
+---
+layout: post
+title: "My approach to Unit Testing"
+category: 
+postId: 610
+---
+<p>The other day I was writing some tests for <a href="http://fluentvalidation.codeplex.com">FluentValidation</a> and I noticed that these tests were quite different to those I wrote in 2008 when I first started the project. I thought it would be interesting to explore how my approach to testing changed over the last couple of years.</p>  <p>For this example, we’ll look at the NotNullValidator. In FluentValidation, this is used to specify that a particular property cannot be null:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:a9ea71d8-2859-4d04-ae8a-53e2bd088a59" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> CustomerValidator <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>Customer<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> CustomerValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Surname</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Here are some of the tests for this feature using my old approach:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:b19bcfc2-e1bb-4755-8684-94b03c334794" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #000000;">&#91;</span>Test<span style="color: #000000;">&#93;</span>
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> NotNullValidator_should_pass_if_property_has_value<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+  var validator <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> NotNullValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  var result <span style="color: #008000;">=</span> validator.<span style="color: #0000FF;">Validate</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> PropertyValidatorContext<span style="color: #000000;">&#40;</span><span style="color: #0600FF;">null</span>, <span style="color: #008000;">new</span> <span style="color: #FF0000;">object</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>, x <span style="color: #008000;">=&gt;</span> <span style="color: #666666;">&quot;Jeremy&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  result.<span style="color: #0000FF;">Count</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">ShouldEqual</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">0</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #000000;">&#91;</span>Test<span style="color: #000000;">&#93;</span>
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> NotNullValidator_should_fail_if_value_is_null<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+  var validator <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> NotNullValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  var result <span style="color: #008000;">=</span> validator.<span style="color: #0000FF;">Validate</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> PropertyValidatorContext<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;name&quot;</span>, <span style="color: #008000;">new</span> <span style="color: #FF0000;">object</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>, x <span style="color: #008000;">=&gt;</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  result.<span style="color: #0000FF;">Count</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">ShouldEqual</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">1</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Here I test this feature by instantiating the NotNullValidator class and passing in a PropertyValidatorContext to simulate input. This is testing the internal API used when calling NotNull.</p>
+
+<p>Here are the same tests using the approach that I use today:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:92524c33-4aac-44ea-89e0-a91639b7e68e" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #000000;">&#91;</span>Test<span style="color: #000000;">&#93;</span>
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> NotNullValidator_valid_if_property_has_value<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+  var validator <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> TestValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  var result <span style="color: #008000;">=</span> validator.<span style="color: #0000FF;">Validate</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> Person<span style="color: #000000;">&#123;</span>Forename <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;Jeremy&quot;</span><span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  result.<span style="color: #0000FF;">IsValid</span>.<span style="color: #0000FF;">ShouldBeTrue</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #000000;">&#91;</span>Test<span style="color: #000000;">&#93;</span>
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> NotNullValidator_not_valid_if_value_is_null<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+  var validator <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> TestValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  var result <span style="color: #008000;">=</span> validator.<span style="color: #0000FF;">Validate</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> Person<span style="color: #000000;">&#123;</span>Forename <span style="color: #008000;">=</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  result.<span style="color: #0000FF;">IsValid</span>.<span style="color: #0000FF;">ShouldBeFalse</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #FF0000;">class</span> TestValidator <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>Person<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> TestValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span> 
+    RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Forename</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Here I test exactly the same feature but by invoking the public API rather than using the internal API directly. </p>
+
+<p>The end result in the same – I’m testing whether the NotNull validator performs correctly when passed different data. The difference is that these tests are much more resilient and also intention-revealing. </p>
+
+<p>If I were to refactor the internal API (which happens from time to time) then the first set of tests would break and I would have to update them. These tests are brittle. The second set of tests would continue to work and validate the system is working correctly even if I refactor the internal API.&#160; </p>
+
+<p>Additionally, the first set of tests perform their assertions by checking how many items are in the “result” collection. By asserting on the “result.IsValid” property, the second set of tests are far easier to understand. This is helpful to me when I re-visit this code, as I can immediately see what the tests are doing. It also helps other developers looking at the codebase to understand what’s happening without having to know how FluentValidation’s internal API works. </p>

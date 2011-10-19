@@ -1,0 +1,39 @@
+---
+layout: post
+title: "Storing ModelState in TempData with ASP.NET MVC"
+category: .NET
+postId: 44
+---
+<p>
+MVC Preview 5 <a href="http://weblogs.asp.net/scottgu/archive/2008/09/02/asp-net-mvc-preview-5-and-form-posting-scenarios.aspx">introduced the contept of ModelState</a> for storing validation failures.  
+</p>
+<p>
+As the ModelState is part of the ViewData, it is only available for the current request. This means that you cannot redirect to another action in order to show the error summary, instead you have to render a view directly from your <em>Save</em> action. Personally I don't think this is a good idea - the Save action should just try and save changes, and then redirect to another action to display validation errors.
+</p>
+<p>
+One solution is to store the ModelState inside the TempData (as anything added to the TempData will be made available to the next HTTP request). It is possible to use an ActionFilterAttribute to make this happen automatically.
+</p>
+<p>
+Under the covers, TempData makes use of ASP.NET Session State which means that every object that is stored in TempData needs to be marked as Serializable if you are using an out of process session store. Unfortunately, the ModelStateDictionary is not marked as serializable, so in order for this approach to work it is necessary to copy the contents of the ModelState into a temporary serializable dictionary.
+</p>
+<p>
+I've made the code <a href="http://mvccontrib.googlecode.com/svn/trunk/src/MVCContrib/Filters/ModelStateToTempDataAttribute.cs">available in MvcContrib</a>. You can use it by decorating your controllers with the ModelStateToTempData attribute:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">using</span> <span style="color: #008080;">MvcContrib.Filters</span><span style="color: #008000;">;</span>
+&nbsp;
+<span style="color: #000000;">&#91;</span>ModelStateToTempData<span style="color: #000000;">&#93;</span>
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> MyController <span style="color: #008000;">:</span> Controller <span style="color: #000000;">&#123;</span>
+  <span style="color: #008080; font-style: italic;">//...</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+The filter has the following features:
+<ul>
+ <li>If your controller action returns a RedirectToRouteResult, anything in the ModelState dictionary will be wrapped in a ModelStateSerializable class and stored in TempData.</li>
+ <li>If your action returns a ViewResult, then any ModelState objects that were previously copied to TempData will be re-added to the ModelState dictionary.</li>
+</ul>
+</p>

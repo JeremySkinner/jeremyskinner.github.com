@@ -1,0 +1,282 @@
+---
+layout: post
+title: "Controllerless Actions with ASP.NET MVC"
+category: .NET
+postId: 141
+---
+<p>
+There's recently been <a href="http://www.lostechies.com/blogs/chad_myers/archive/2009/06/18/going-controller-less-in-mvc-the-way-fowler-meant-it.aspx">some</a> <a href="http://jeffreypalermo.com/blog/the-asp-net-mvc-actioncontroller-ndash-the-controllerless-action-or-actionless-controller/">discussion</a> online about the concept of using 'controllerless' actions with the MVC pattern and I wanted to see how easy this would be to implement on top of ASP.NET MVC.
+</p>
+<h2>What is a Controllerless Action?</h2>
+<p>
+In a typical ASP.MVC project, a controller maps to a class and and action maps to a method on that class, eg:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> CustomerController <span style="color: #008000;">:</span> Controller <span style="color: #000000;">&#123;</span>
+&nbsp;
+   <span style="color: #0600FF;">private</span> CustomerRepository customerRepository<span style="color: #008000;">;</span>
+&nbsp;
+   <span style="color: #0600FF;">public</span> CustomerRepository<span style="color: #000000;">&#40;</span>CustomerRepository customerRepository<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      <span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">customerRepository</span> <span style="color: #008000;">=</span> customerRepository<span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+&nbsp;
+   <span style="color: #0600FF;">public</span> ActionResult Index<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      <span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+&nbsp;
+   <span style="color: #0600FF;">public</span> ActionResult Edit<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">int</span> id<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      var customer <span style="color: #008000;">=</span> customerRepository.<span style="color: #0000FF;">FindById</span><span style="color: #000000;">&#40;</span>id<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+      <span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span>customer<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+In this example visiting the URL <strong>/Customer/Index</strong> would invoke the <strong>Index</strong> method on the CustomerController, while </strong>/Customer/Edit/5</strong> would invoke the <strong>Edit</strong> method (with the id coming in as a parameter). 
+</p>
+<p>
+The idea behind a controllerless aciton is that each action is a separate class, so our Index action above would look like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">namespace</span> MyApp.<span style="color: #0000FF;">Controllers</span>.<span style="color: #0000FF;">Home</span> <span style="color: #000000;">&#123;</span>
+   <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> Index <span style="color: #000000;">&#123;</span>
+      <span style="color: #0600FF;">public</span> ActionResult Execute<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+          <span style="color: #0600FF;">return</span> <span style="color: #008000;">new</span> ViewResult<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+      <span style="color: #000000;">&#125;</span>
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<h2>What are the benefits of controllerless actions?</h2>
+<p>
+In a small/simple project there probably isn't much benefit. However, in a large application you'll often find that controllers can become quite large and complex. One of the biggest problems is that different actions in the same controller class require different dependencies. For example, check out this constructor from the OrderController in <a href="http://code.google.com/p/sutekishop">SutekiShop</a>:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> OrderController<span style="color: #000000;">&#40;</span>
+   IRepository<span style="color: #008000;">&lt;</span>Order<span style="color: #008000;">&gt;</span> orderRepository, 
+   IRepository<span style="color: #008000;">&lt;</span>Country<span style="color: #008000;">&gt;</span> countryRepository, 
+   IRepository<span style="color: #008000;">&lt;</span>CardType<span style="color: #008000;">&gt;</span> cardTypeRepository, 
+   IEncryptionService encryptionService, 
+   IPostageService postageService, 
+   IUserService userService, 
+   IOrderSearchService searchService, 
+   IRepository<span style="color: #008000;">&lt;</span>OrderStatus<span style="color: #008000;">&gt;</span> statusRepository<span style="color: #000000;">&#41;</span>
+<span style="color: #000000;">&#123;</span>
+   ...
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Not all of the actions in the OrderController make use of all of these dependencies. For example, the OrderSearchService is only used by the Index action. In this situation it would make sense to split the controller up into a separate class for each action. This way, each action has less baggage to carry around - it only takes dependencies on those things it actually needs. As a side effect, this helps with testability as you can test each action without having to provide stubs for the dependencies that the action doesn't use. 
+</p>
+<h2>ASP.NET MVC Implementation</h2>
+<p>
+Jeffrey Palermo has <a href="http://jeffreypalermo.com/blog/the-asp-net-mvc-actioncontroller-ndash-the-controllerless-action-or-actionless-controller/">already posted</a> an excellent example of using controllerless actions with ASP.NET MVC. In his example, you have to inherit from a class called <strong>ActionController</strong> and then create a method called <strong>Execute</strong> to handle the request. Because ActionController inherits from the existing System.Web.Mvc.Controller this allows you to make use of all the existing features in ASP.NET MVC.   
+</p>
+<p>
+However, I wanted to try something slightly different. My aim here is:
+</p>
+<ul>
+<li>To allow action classes to be POCO (ie, not inherit from a base class)</li>
+<li>To allow method invocation semantics to be configurable by using IoC container</li>
+<li>To allow action filters to be configured externally (rather than using attributes)</li>
+<li>To re-use as much of the ASP.NET MVC framework infrastructure as possible</li>
+</ul>
+<p>
+I managed to succeed with most of these points, but there are some fairly major problems with this approach (see below). To start with, let's explore the end result:
+</p>
+<h2>Example Application</h2>
+<p>
+In this example I'll be using the <a href="http://code.google.com/p/autofac">Autofac</a> IoC container for driving the application. Code for this is example is linked to from the bottom of the post.
+</p>
+<p>
+The first thing we need to do is configure our IoC container and register our controller factory (we also have to make our MvcApplication class implement Autofac's IContainerProviderAccessor and set up the container disposal HTTP Module - see the sample code for the implementation):
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">void</span> Application_Start<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+   RegisterRoutes<span style="color: #000000;">&#40;</span>RouteTable.<span style="color: #0000FF;">Routes</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   InitialiseContainer<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+  <span style="color: #008080; font-style: italic;">//...more configuration</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">void</span> InitialiseContainer<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+   var builder <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> ContainerBuilder<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   builder.<span style="color: #0000FF;">RegisterModule</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> ControllerlessActionsModule<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   provider <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> ContainerProvider<span style="color: #000000;">&#40;</span>builder.<span style="color: #0000FF;">Build</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+   ServiceLocator.<span style="color: #0000FF;">SetLocatorProvider</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #008000;">=&gt;</span> provider.<span style="color: #0000FF;">RequestContainer</span>.<span style="color: #0000FF;">Resolve</span><span style="color: #008000;">&lt;</span>IServiceLocator<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+Note we register a <strong>ControllerlessActionsModule</strong> with our container builder. Autofac's modules allow you to group registrations together:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> ControllerlessActionsModule <span style="color: #008000;">:</span> Module <span style="color: #000000;">&#123;</span>
+   INamingConventions	namingConventions <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> DefaultNamingConventions<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+   <span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">override</span> <span style="color: #0600FF;">void</span> Load<span style="color: #000000;">&#40;</span>ContainerBuilder builder<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      builder.<span style="color: #0000FF;">Register</span><span style="color: #000000;">&#40;</span>c <span style="color: #008000;">=&gt;</span> <span style="color: #008000;">new</span> AutofacServiceLocator<span style="color: #000000;">&#40;</span>c<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0600FF;">As</span><span style="color: #008000;">&lt;</span>IServiceLocator<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">ContainerScoped</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+      builder.<span style="color: #0000FF;">Register</span><span style="color: #000000;">&#40;</span>namingConventions<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">ExternallyOwned</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+      builder.<span style="color: #0000FF;">Register</span><span style="color: #000000;">&#40;</span>c <span style="color: #008000;">=&gt;</span> <span style="color: #008000;">new</span> DefaultActionMethodSelector<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0600FF;">As</span><span style="color: #008000;">&lt;</span>IActionMethodSelector<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+      var actionTypes <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> ControllerActionLocator<span style="color: #000000;">&#40;</span>namingConventions<span style="color: #000000;">&#41;</span>
+         .<span style="color: #0000FF;">FindActionsFromAssemblyContaining</span><span style="color: #008000;">&lt;</span>Index<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+         .<span style="color: #0000FF;">Where</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0600FF;">Namespace</span>.<span style="color: #0000FF;">StartsWith</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Web.Controllers&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+         <span style="color: #0600FF;">foreach</span><span style="color: #000000;">&#40;</span>var action <span style="color: #0600FF;">in</span> actionTypes<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+            builder.<span style="color: #0000FF;">Register</span><span style="color: #000000;">&#40;</span>action.<span style="color: #0000FF;">Type</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">FactoryScoped</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Named</span><span style="color: #000000;">&#40;</span>action.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+         <span style="color: #000000;">&#125;</span>
+     <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Here we set up our registrations with the container. Note that we are providing an implementation of INamingConventions. This is used to construct keys for the action registrations. The DefaultNamingConventions class assumes that action classes will live in a Namespace of [Application].Controllers.[Controller name]. So an "Index" action class in the "Home" namespace would be registered as "home.index.action". We also register the <strong>DefaultActionMethodSelector</strong> (more on this below) and then use the <strong>ControllerActionLocator</strong> to find all the action classes in our assembly. 
+</p>
+<p>
+Back in our Global.asax, we also need to register the ControllerlessControllerFactory in Application_Start:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"> ControllerBuilder.<span style="color: #0000FF;">Current</span>.<span style="color: #0000FF;">SetControllerFactory</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> ControllerlessControllerFactory<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #008000;">=&gt;</span> provider.<span style="color: #0000FF;">RequestContainer</span>.<span style="color: #0000FF;">Resolve</span><span style="color: #008000;">&lt;</span>IServiceLocator<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+<p>
+The ControllerlessControllerFactory asks the container to resolve our action class and then returns it for execution. Unfortunately, this is where things start to become difficult. The first problem is that the MVC Framework expects all controllers to implement the IController interface (which contains 1 method - Execute). This is a problem because we want our action classes to be POCO and have some other class responsible for their execution. To make matters worse, most of the framework expects controllers to inherit from ControllerBase (which raises the question why bother having the IController interface if you're going to require the use of a base class?) 
+</p>
+<p>
+We can work around this problem by using a <strong>ControllerAdaptor</strong> which inherits from System.Web.Mvc.Controller and wraps our action class. The ControllerlessControllerFactory's CreateController method looks like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> IController CreateController<span style="color: #000000;">&#40;</span>RequestContext requestContext, <span style="color: #FF0000;">string</span> controllerName<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+   <span style="color: #FF0000;">string</span> actionName <span style="color: #008000;">=</span> requestContext.<span style="color: #0000FF;">RouteData</span>.<span style="color: #0000FF;">GetRequiredString</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;action&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #FF0000;">string</span> key <span style="color: #008000;">=</span> NamingConventions.<span style="color: #0000FF;">BuildKeyFromControllerAndAction</span><span style="color: #000000;">&#40;</span>controllerName, actionName<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+   <span style="color: #FF0000;">object</span> actionInstance<span style="color: #008000;">;</span>
+&nbsp;
+   <span style="color: #0600FF;">try</span> <span style="color: #000000;">&#123;</span>
+      actionInstance <span style="color: #008000;">=</span>  serviceLocator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GetInstance</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">object</span><span style="color: #000000;">&#41;</span>, key<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+   <span style="color: #0600FF;">catch</span> <span style="color: #000000;">&#40;</span>Exception ex<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      <span style="color: #0600FF;">throw</span> <span style="color: #008000;">new</span> HttpException<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">404</span>, <span style="color: #666666;">&quot;Controller not found&quot;</span>, ex<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+&nbsp;
+   <span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>actionInstance <span style="color: #008000;">==</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      <span style="color: #0600FF;">throw</span> <span style="color: #008000;">new</span> HttpException<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">404</span>, <span style="color: #666666;">&quot;Controller not found&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+&nbsp;
+   <span style="color: #0600FF;">return</span> <span style="color: #008000;">new</span> ControllerAdaptor<span style="color: #000000;">&#40;</span>actionInstance, serviceLocator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+The ControllerAdaptor replaces the MVC framework's default ControllerActionInvoker with a <strong>ControllerlessActionInvoker</strong>. The ControllerlessActionInvoker calls into the implementation of <strong>IActionMethodSelector</strong> registered with our container to find the method on our action class to execute. The default behaviour is first to look for a method matching the current HTTP verb (<strong>Get</strong> or <strong>Post</strong>) or if one of these methods cannot be found then it will look for a method called <strong>Execute</strong>.
+</p>
+<p>
+With all this wiered up, our Action class can look like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">&nbsp;
+<span style="color: #0600FF;">namespace</span> Web.<span style="color: #0000FF;">Controllers</span>.<span style="color: #0000FF;">Home</span> <span style="color: #000000;">&#123;</span>
+   <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> Index <span style="color: #000000;">&#123;</span>
+&nbsp;
+      <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">object</span> Get<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">int</span><span style="color: #008000;">?</span> id<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+         <span style="color: #0600FF;">return</span> <span style="color: #008000;">new</span> HomeViewModel <span style="color: #000000;">&#123;</span> Id <span style="color: #008000;">=</span> id <span style="color: #000000;">&#125;</span><span style="color: #008000;">;</span>
+      <span style="color: #000000;">&#125;</span>
+&nbsp;
+      <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">object</span> Post<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">string</span> name<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+         <span style="color: #0600FF;">return</span> <span style="color: #008000;">new</span> ContentResult <span style="color: #000000;">&#123;</span> Content <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;Hello there, &quot;</span> <span style="color: #008000;">+</span> name <span style="color: #000000;">&#125;</span><span style="color: #008000;">;</span>
+      <span style="color: #000000;">&#125;</span>
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+The Get method will respond to HTTP GET requests to /Home/Index and the Post method will respond to POSTs. Note that while our Post method returns a type derived from ActionResult, the Get method does not. By default in the MVC framework, if you return an object from a controller action which does not derive ActionResult then it is converted to a string and rendered to the response stream.  However, we can use an ActionFilter to apply a different convention so that if an object is returned that is *not* an ActionResult then a View will be rendered with that object as its ViewData.
+</p>
+<h2>Action Filter Configuration</h2>
+<p>
+For the most part the controllerless ActionFilter implementation re-uses the MVC Framework's default implementation. The only difference is how we declare the filters. By default, the framework expects ActionFilters to be declared as Attributes that decorate our controller classes and action methods. I am not particularly fond of this approach as it is not suitable for use with dependency injection (although there are some workarounds - see <a href="http://www.jeremyskinner.co.uk/2008/11/08/dependency-injection-with-aspnet-mvc-action-filters/">here</a> and <a href="http://www.lostechies.com/blogs/jimmy_bogard/archive/2008/12/08/attributes-are-lousy-decorators.aspx">here</a>) so I wanted to externalise the filter configuration.
+</p>
+<p>
+The ControllerlessActions sample contains a <strong>FilterCollection</strong> class that the ControllerlessActionInvoker will use to obtain filters for the current action. This can be configured in our autofac module:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">   var filters <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> FilterCollection<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   builder.<span style="color: #0000FF;">Register</span><span style="color: #000000;">&#40;</span>filters<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">ExternallyOwned</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   builder.<span style="color: #0000FF;">RegisterTypesAssignableTo</span><span style="color: #008000;">&lt;</span>IActionFilter<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">FactoryScoped</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   builder.<span style="color: #0000FF;">RegisterTypesAssignableTo</span><span style="color: #008000;">&lt;</span>IAuthorizationFilter<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">FactoryScoped</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+   filters.<span style="color: #0000FF;">Apply</span><span style="color: #008000;">&lt;</span>DecorateModelWithViewResult<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Always</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+
+<p>First, we register a FilterCollection with the container and also lazily register all ActionFilters and AuthorizationFilters that are in the project. The final line says that for every action that is invoked, execute the <strong>DecorateModelWithViewResult</strong> filter. This filter looks to see if the result of an action is an object that derives from ActionResult. If not, it wraps the object in a ViewResult:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> DecorateModelWithViewResult <span style="color: #008000;">:</span> IActionFilter <span style="color: #000000;">&#123;</span>
+   <span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> OnActionExecuting<span style="color: #000000;">&#40;</span>ActionExecutingContext filterContext<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span><span style="color: #000000;">&#125;</span>
+&nbsp;
+   <span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> OnActionExecuted<span style="color: #000000;">&#40;</span>ActionExecutedContext filterContext<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      var result <span style="color: #008000;">=</span> filterContext.<span style="color: #0000FF;">Result</span> <span style="color: #0600FF;">as</span> ModelResult<span style="color: #008000;">;</span>
+      <span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span>result <span style="color: #008000;">!=</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+         filterContext.<span style="color: #0000FF;">Controller</span>.<span style="color: #0000FF;">ViewData</span>.<span style="color: #0000FF;">Model</span> <span style="color: #008000;">=</span> result.<span style="color: #0000FF;">Model</span><span style="color: #008000;">;</span>
+         filterContext.<span style="color: #0000FF;">Result</span> <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> ViewResult<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+      <span style="color: #000000;">&#125;</span>
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+We can also configure action filters to only apply to certain actions:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">filters.<span style="color: #0000FF;">Apply</span><span style="color: #008000;">&lt;</span>AddMessageToViewData<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">When</span><span style="color: #000000;">&#40;</span>action <span style="color: #008000;">=&gt;</span> action.<span style="color: #0000FF;">ActionInstance</span> <span style="color: #008000;">is</span> Controllers.<span style="color: #0000FF;">Home</span>.<span style="color: #0000FF;">Index</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+<p>...or alternatively...</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">filters.<span style="color: #0000FF;">Apply</span><span style="color: #008000;">&lt;</span>AddMessageToViewData<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">ForTypesAssignableTo</span><span style="color: #008000;">&lt;</span>Controllers.<span style="color: #0000FF;">Home</span>.<span style="color: #0000FF;">Index</span><span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+<h2>Limitations</h2>
+<p>
+Unfortunately, the MVC Framework is really designed to work with controller classes that inherit from ControllerBase. Although we can hack around this by using a ControllerAdaptor and a custom ActionInvoker the implementation is not very neat and actually ends up having to bypass some key optimizations in the framework. For example, the ControllerDescriptorCache and the ActionMethodDispatcher cache only work for the default ActionInvoker implementation, and they cannot be extended as they are marked as internal (ugh). This probably means that my solution will not perform optimally (although I haven't run any benchmarks).</p>
+<p>
+I also ended up having to copy-and-paste several methods from the MVC framework source into my sample application because they were marked as private/internal.</p>
+<p>
+In the end, I'd tend to suggest that if you want to use controllerless actions with the ASP.NET MVC framework then you should consider using something like Jeffrey's <a href="http://jeffreypalermo.com/blog/the-asp-net-mvc-actioncontroller-ndash-the-controllerless-action-or-actionless-controller/">ActionController base class</a> as the solution is much cleaner and simpler. Using POCO is probably a more sensible choice if you're using a more open framework such as <a href="http://fubumvc.pbworks.com/">FubuMVC</a>
+</p>
+<p>
+<strong>Edit:</strong> <a href="http://serialseb.blogspot.com">Seb</a> pointed out that one advantage of using POCO classes for your actions is that it makes it a lot easier to re-use them across different frameworks (eg <a href="http://trac.caffeine-it.com/openrasta">OpenRasta</a>). 
+</p>
+<h2>Where's the code?</h2>
+<p>
+All the code from this post is up on <del datetime="2009-07-20T19:49:27+00:00">my svn repository at <a href="https://www.jeremyskinner.co.uk/svn/public/trunk/ControllerlessActions">https://www.jeremyskinner.co.uk/svn/public/trunk/ControllerlessActions</a>  (username 'guest')</del> on <a href="http://github.com/JeremySkinner/Experiments/">GitHub</a> and <a href="http://cloud.github.com/downloads/JeremySkinner/Experiments/ControllerlessActions.zip">can be downloaded here.</a>
+
+</p>

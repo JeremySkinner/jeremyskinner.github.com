@@ -1,0 +1,72 @@
+---
+layout: post
+title: "MvcContrib Grid Part 6 - Sorting"
+category: .NET
+postId: 488
+---
+<p>This is part 6 of a series about the MvcContrib Grid.</p>  <ul>   <li><a href="http://www.jeremyskinner.co.uk/2009/02/08/rewriting-the-mvccontrib-grid/">Part 1 – Introduction</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/02/22/rewriting-the-mvccontrib-grid-part-2-new-syntax/">Part 2 – New Syntax</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/02/23/rewriting-the-mvccontrib-grid-part-3-gridmodels-and-gridrenderers">Part 3 – GridModels and GridRenderes</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/02/28/mvccontrib-grid-part-4-limitations-of-the-webformsviewengine">Part 4 – Limitations of the WebFormsViewEngine</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/03/01/mvccontrib-grid-part-5-the-action-syntax">Part 5 – The Action Syntax</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2010/03/14/mvccontrib-grid-part-6-sorting/">Part 6 – Sorting</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2010/04/27/mvccontrib-grid-part-7-auto-generated-columns/">Part 7 – Auto-generated columns</a> </li> </ul>  <p>I recently added single-column sorting support to the MvcContrib grid. This can be turned on by calling the “Sort” method on a grid declaration and accepting a parameter of type GridSortOptions in your controller actions.</p>  <p>Controller:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:92bcd9ca-e271-4b4b-a97e-1f2912870984" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> ActionResult Sorting<span style="color: #000000;">&#40;</span>GridSortOptions sort<span style="color: #000000;">&#41;</span> 
+<span style="color: #000000;">&#123;</span>
+  ViewData<span style="color: #000000;">&#91;</span><span style="color: #666666;">&quot;sort&quot;</span><span style="color: #000000;">&#93;</span> <span style="color: #008000;">=</span> sort<span style="color: #008000;">;</span>
+  var people <span style="color: #008000;">=</span> _peopleFactory.<span style="color: #0000FF;">CreatePeople</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+  <span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">!</span><span style="color: #FF0000;">string</span>.<span style="color: #0000FF;">IsNullOrEmpty</span><span style="color: #000000;">&#40;</span>sort.<span style="color: #0000FF;">Column</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    people <span style="color: #008000;">=</span> people.<span style="color: #0000FF;">OrderBy</span><span style="color: #000000;">&#40;</span>sort.<span style="color: #0000FF;">Column</span>, sort.<span style="color: #0000FF;">Direction</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span>people<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>View:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:f60fcfee-7464-4712-a63a-ed9dcbf3c283" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model<span style="color: #006600; font-weight:bold;">&#41;</span>
+  .<span style="color: #9900cc;">Sort</span><span style="color: #006600; font-weight:bold;">&#40;</span>ViewData<span style="color: #006600; font-weight:bold;">&#91;</span><span style="color: #cc0000;">&quot;sort&quot;</span><span style="color: #006600; font-weight:bold;">&#93;</span> <span style="color: #330066;">as</span> GridSortOptions<span style="color: #006600; font-weight:bold;">&#41;</span>
+  .<span style="color: #9900cc;">Columns</span><span style="color: #006600; font-weight:bold;">&#40;</span>column <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+      column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Id</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Named</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;Person ID&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+      column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+      column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Gender</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+      column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">DateOfBirth</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Format</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;{0:d}&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+    <span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+</div>
+
+<p>By calling the “Sort” method, this tells the grid that sorting should be enabled. This will generate sorting links for each column heading (note that currently sorting is enabled for all columns – there is no way to enable it for individual columns only. I’ll change this in a future release)</p>
+
+<p>These sorting links will add two additional parameters to the querystring: Column and Direction. These can be handled in your controller action by taking as a parameter an object of type GridSortOptions.</p>
+
+<p>Using this object, you can then sort your data using whatever mechanism you choose. Out of the box, MvcContrib provides an overload for the “OrderBy” extension method that takes a property name and a direction and delegates the sorting to IQueryable. However, use of this extension method is entirely optional.</p>
+
+<p>This also works with the grid’s paging support, so if you want your data to be both paged and sorted then you can make a call to AsPagination (or by using a custom IPagination provider) after the call to OrderBy:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:39a91ae4-7c05-4df8-ae53-cbc4f740b801" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> ActionResult SortingAndPaging<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">int</span><span style="color: #008000;">?</span> page, GridSortOptions sort<span style="color: #000000;">&#41;</span> 
+<span style="color: #000000;">&#123;</span>
+  ViewData<span style="color: #000000;">&#91;</span><span style="color: #666666;">&quot;sort&quot;</span><span style="color: #000000;">&#93;</span> <span style="color: #008000;">=</span> sort<span style="color: #008000;">;</span>
+  var people <span style="color: #008000;">=</span> _peopleFactory.<span style="color: #0000FF;">CreatePeople</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+  <span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span><span style="color: #008000;">!</span><span style="color: #FF0000;">string</span>.<span style="color: #0000FF;">IsNullOrEmpty</span><span style="color: #000000;">&#40;</span>sort.<span style="color: #0000FF;">Column</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    people <span style="color: #008000;">=</span> people.<span style="color: #0000FF;">OrderBy</span><span style="color: #000000;">&#40;</span>sort.<span style="color: #0000FF;">Column</span>, sort.<span style="color: #0000FF;">Direction</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+&nbsp;
+  people <span style="color: #008000;">=</span> people.<span style="color: #0000FF;">AsPagination</span><span style="color: #000000;">&#40;</span>page <span style="color: #008000;">??</span> <span style="color: #FF0000;">1</span>, <span style="color: #FF0000;">10</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+  <span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span>people<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>…and the results will be as expected.</p>
+
+<p>When a column is sorted, the CSS classes of “sort_asc” or “sort_desc” will be applied to the relevant &lt;th&gt; element, so you can style the column headings (for example, by adding up/down arrows).</p>

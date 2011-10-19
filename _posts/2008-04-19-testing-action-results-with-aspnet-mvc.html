@@ -1,0 +1,54 @@
+---
+layout: post
+title: "Testing Action Results with ASP.NET MVC"
+category: .NET
+postId: 24
+---
+<p>The <a href="http://weblogs.asp.net/scottgu/archive/2008/04/16/asp-net-mvc-source-refresh-preview.aspx">latest preview</a> of <a href="http://www.codeplex.com/aspnet">ASP.NET MVC</a> supports returning ActionResult objects from controller actions.</p>
+
+<p>This makes it very easy to test the results of an action (for example, redirecting to another controller) which was a much more involved process in previous releases.</p>
+<p>Imagine the following controller:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> HomeController <span style="color: #008000;">:</span> Controller <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> ActionResult Index<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> RedirectToAction<span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> <span style="color: #000000;">&#123;</span> controller <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;Home&quot;</span>, action <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;about&quot;</span> <span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> ActionResult About<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> RenderView<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>While previously you'd have to mock the Response.Redirect method, now you can do this:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">var controller <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> HomeController<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+ActionRedirectResult result <span style="color: #008000;">=</span> controller.<span style="color: #0000FF;">Index</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #0600FF;">as</span> ActionRedirectResult<span style="color: #008000;">;</span>
+&nbsp;
+<span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span>result <span style="color: #008000;">==</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	Assert.<span style="color: #0000FF;">Fail</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Expected an ActionRedirectResult&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span>
+<span style="color: #0600FF;">else</span> <span style="color: #000000;">&#123;</span>
+	Assert.<span style="color: #0000FF;">That</span><span style="color: #000000;">&#40;</span>result.<span style="color: #0000FF;">Values</span><span style="color: #000000;">&#91;</span><span style="color: #666666;">&quot;controller&quot;</span><span style="color: #000000;">&#93;</span>, <span style="color: #008000;">Is</span>.<span style="color: #0000FF;">EqualTo</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Home&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	Assert.<span style="color: #0000FF;">That</span><span style="color: #000000;">&#40;</span>result.<span style="color: #0000FF;">Values</span><span style="color: #000000;">&#91;</span><span style="color: #666666;">&quot;action&quot;</span><span style="color: #000000;">&#93;</span>, <span style="color: #008000;">Is</span>.<span style="color: #0000FF;">EqualTo</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;about&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>While this is certainly easier, it is still a little cumbersome. To help with this, I've added some extension methods to MvcContrib's 'TestHelper' project. So now I can write:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">var controller <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> HomeController<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+controller.<span style="color: #0000FF;">Index</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">AssertIsActionRedirect</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">ToController</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Home&quot;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">ToAction</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;about&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+
+<p>
+Much better!
+</p>

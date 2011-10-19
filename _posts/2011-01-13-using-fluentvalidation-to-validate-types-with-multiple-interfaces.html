@@ -1,0 +1,149 @@
+---
+layout: post
+title: "Using FluentValidation to validate types with multiple interfaces"
+category: FluentValidation
+postId: 620
+---
+<p>I was recently asked on the <a href="http://fluentvalidation.codeplex.com/discussions">FluentValidation forum</a> whether it’s possible to re-use validation rules for interface properties across multiple types that implement that interface.</p>  <p>For example, imagine you a Customer class that implements two interfaces – IPerson and ICustomer.   <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:88cc69a8-b2e9-4fbd-8d3d-92bf33c50b57" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">interface</span> IPerson <span style="color: #000000;">&#123;</span>
+	<span style="color: #FF0000;">string</span> Name <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">interface</span> ICustomer <span style="color: #000000;">&#123;</span>
+	<span style="color: #FF0000;">string</span> CompanyName <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> Customer <span style="color: #008000;">:</span> IPerson, ICustomer <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">decimal</span> Discount <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> Name <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> CompanyName <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+</p>
+
+<p>The aim here is to be able to define rules for properties on IPerson and then re-use them for both the Manager and Customer validators. </p>
+
+<h3>Option 1: Inheritance</h3>
+
+<p>The first option is to define a base validator, generic validator constrained to the interface type:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:39ced2b5-c0ae-48d4-911e-2679f88889f7" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> abstract <span style="color: #FF0000;">class</span> PersonValidatorBase<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> <span style="color: #008000;">:</span> AbstractValidtor<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> where T <span style="color: #008000;">:</span> IPerson <span style="color: #000000;">&#123;</span>
+   <span style="color: #0600FF;">public</span> PersonValidatorBase<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>…then, it’s just a case of inheriting from this validator and closing the generic type:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:14d9b7fe-bf4a-4bf0-8fec-e9cce8d2d85c" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> CustomerValidator <span style="color: #008000;">:</span> PersonValidatorBase<span style="color: #008000;">&lt;</span>Customer<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+   <span style="color: #0600FF;">public</span> CustomerValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+     RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Discount</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GreaterThan</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">0</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Rather than inheriting from AbstractValidator, the CustomerValidator instead inherits from PersonValidatorBase and supplies the generic type. This way, the CustomerValidator will inherit all the rules defined in PersonValidatorBase. </p>
+
+<p>Although this works for a single interface, it doesn’t solve our particular problem as we also want to be able to define and re-use the rules for the ICustomer interface too.</p>
+
+<h3>Option 2: A Composite Validator</h3>
+
+<p>A better option would be to define some sort of composite validator that can be used to compose multiple validators together at runtime. To do this, we can create a new class (CompositeValidator) that inherits from AbstractValidator and also provides a way to register additional validators:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:b4e30d4c-18e8-4e77-8bff-def022f05b4b" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> abstract <span style="color: #FF0000;">class</span> CompositeValidator<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">private</span> List<span style="color: #008000;">&lt;</span>IValidator<span style="color: #008000;">&gt;</span> otherValidators <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> List<span style="color: #008000;">&lt;</span>IValidator<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">void</span> RegisterBaseValidator<span style="color: #008000;">&lt;</span>TBase<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span>IValidator<span style="color: #008000;">&lt;</span>TBase<span style="color: #008000;">&gt;</span> validator<span style="color: #000000;">&#41;</span> 
+	<span style="color: #000000;">&#123;</span>
+		<span style="color: #008080; font-style: italic;">// Ensure that we've registered a compatible validator. </span>
+		<span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span>validator.<span style="color: #0000FF;">CanValidateInstancesOfType</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>T<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			otherValidators.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span>validator<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+		<span style="color: #0600FF;">else</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">throw</span> <span style="color: #008000;">new</span> NotSupportedException<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">string</span>.<span style="color: #0000FF;">Format</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Type {0} is not a base-class or interface implemented by {1}.&quot;</span>, <span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>TBase<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Name</span>, <span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>T<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> ValidationResult Validate<span style="color: #000000;">&#40;</span>ValidationContext<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> context<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var mainErrors <span style="color: #008000;">=</span> <span style="color: #0600FF;">base</span>.<span style="color: #0000FF;">Validate</span><span style="color: #000000;">&#40;</span>context<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Errors</span><span style="color: #008000;">;</span>
+		var errorsFromOtherValidators <span style="color: #008000;">=</span> otherValidators.<span style="color: #0000FF;">SelectMany</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Validate</span><span style="color: #000000;">&#40;</span>context<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Errors</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		var combinedErrors <span style="color: #008000;">=</span> mainErrors.<span style="color: #0000FF;">Concat</span><span style="color: #000000;">&#40;</span>errorsFromOtherValidators<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #0600FF;">return</span> <span style="color: #008000;">new</span> ValidationResult<span style="color: #000000;">&#40;</span>combinedErrors<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>The CompositeValidator has a RegisterBaseValidator method that allows you to register an additional validator for a base class or interface. We also override the Validate method to merge the validation failures for the additional validators with the main validator’s failures. </p>
+
+<p>We can now declare validators for IPerson and ICustomer in the normal way:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:653f0c01-c57f-4327-ad19-bdb576db659c" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PersonInterfaceValidator<span style="color: #008000;">:</span>AbstractValidator<span style="color: #008000;">&lt;</span>IPerson<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> PersonInterfaceValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> CustomerInterfaceValidator <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>ICustomer<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> CustomerInterfaceValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">CompanyName</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+
+
+<p>…and the CustomerValidator can be defined as inheriting from CompositeValidator:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:7f46b4cc-2978-4acb-b55e-165986c31e1c" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> CustomerValidator <span style="color: #008000;">:</span> CompositeValidator<span style="color: #008000;">&lt;</span>Customer<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> CustomerValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		RegisterBaseValidator<span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> PersonInterfaceValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		RegisterBaseValidator<span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> CustomerInterfaceValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Discount</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GreaterThan</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">0</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Note that the CustomerValidator includes the rules for the interface validators as well as defining its own rules. The CustomerValidator can now be used in the normal way:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:1320f0a6-45a3-4680-9f2a-9edff1da626f" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">var validator <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> CustomerValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+var result <span style="color: #008000;">=</span> validator.<span style="color: #0000FF;">Validate</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> Customer<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+</div>

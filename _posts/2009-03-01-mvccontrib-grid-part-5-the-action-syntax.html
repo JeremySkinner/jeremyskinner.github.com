@@ -1,0 +1,123 @@
+---
+layout: post
+title: "MvcContrib Grid Part 5 - The Action Syntax"
+category: .NET
+postId: 121
+---
+<p>This is part 5 of a series about the new MvcContrib grid.</p>
+<ul>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/08/rewriting-the-mvccontrib-grid/">Part 1 - Introduction</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/22/rewriting-the-mvccontrib-grid-part-2-new-syntax/">Part 2 - New Syntax</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/23/rewriting-the-mvccontrib-grid-part-3-gridmodels-and-gridrenderers">Part 3 - GridModels and GridRenderes</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/28/mvccontrib-grid-part-4-limitations-of-the-webformsviewengine">Part 4 - Limitations of the WebFormsViewEngine</a></li>
+<li>
+<a href="http://www.jeremyskinner.co.uk/2009/03/01/mvccontrib-grid-part-5-the-action-syntax">Part 5 - The Action Syntax</a>
+</li>
+  <li><a href="http://www.jeremyskinner.co.uk/2010/03/14/mvccontrib-grid-part-6-sorting/">Part 6 – Sorting</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2010/04/27/mvccontrib-grid-part-7-auto-generated-columns/">Part 7 – Auto-generated columns</a>
+</ul>
+<p>
+The rewritten MvcContrib grid now has an alternative syntax thanks to the work of <a href="http://www.primedigit.com/">Will Shaver</a>. This syntax is called the 'Action' syntax as it makes heavy use of the System.Action delegate. 
+</p>
+<h2>Enabling the ActionSyntax</h2>
+<p>
+By default, the methods associated with the Action Syntax will not show up as they are extension methods that live in a different namespace to the rest of the grid. Out of the box only the default syntax will work. To enable the Action Syntax you'll need to either import the <strong>MvcContrib.UI.Grid.ActionSyntax</strong> namespace either in your .aspx view...
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">@</span> Import Namespace<span style="color: #006600; font-weight: bold;">=</span><span style="color: #cc0000;">&quot;MvcContrib.UI.Grid.ActionSyntax&quot;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+<p>...or in your web.config's namespace import section:</p>
+
+
+<div class="syntax"><div class="code"><pre class="xml" style="font-family:monospace;"><span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;system.web<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+  <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;pages<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;namespaces<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+        <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;add</span> <span style="color: #000066;">namespace</span>=<span style="color: #ff0000;">&quot;MvcContrib.UI.Grid.ActionSyntax&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/namespaces<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+  <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/pages<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/system.web<span style="color: #000000; font-weight: bold;">&gt;</span></span></span></pre></div></div>
+
+
+
+<h2>
+Comparing the two syntaxes
+</h2>
+<p>
+There are several differences between the two syntaxes. Here is a grid definition using the default syntax:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model<span style="color: #006600; font-weight:bold;">&#41;</span>
+	.<span style="color: #9900cc;">Columns</span><span style="color: #006600; font-weight:bold;">&#40;</span>column <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+  		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Id</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Named</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;Person ID&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Gender</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>    
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">DateOfBirth</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Format</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;{0:d}&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;View Person&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Named</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Partial</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;ViewPersonPartial&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span> <span style="color: #ff6600;">//Example of using a Partial view for complex cells</span>
+     	<span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">RowStart</span><span style="color: #006600; font-weight:bold;">&#40;</span>row <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #990099; font-weight: bold;">string</span>.<span style="color: #9900cc;">Format</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;&lt;tr{0}&gt;&quot;</span>, row.<span style="color: #9900cc;">IsAlternate</span> <span style="color: #006600; font-weight: bold;">?</span> <span style="color: #cc0000;">&quot;style=&quot;</span>background-color<span style="color: #006600; font-weight: bold;">:</span>#CCDDCC<span style="color: #cc0000;">&quot;&quot;</span> <span style="color: #006600; font-weight: bold;">:</span> <span style="color: #cc0000;">&quot;&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight:bold;">&#41;</span> 
+  <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+<p>
+Here we're specifying that the <strong>View Person</strong> column is a custom column that should be rendered using a Partial View, and the start of every alternate row has a background colour**. 
+</p>
+<p>
+Here is the same grid defined using the ActionSyntax:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model<span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Columns</span><span style="color: #006600; font-weight:bold;">&#40;</span>column <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Id</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Named</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;Person ID&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Gender</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">DateOfBirth</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+                column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;View Person&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Named</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Action</span><span style="color: #006600; font-weight:bold;">&#40;</span>p <span style="color: #006600; font-weight: bold;">=&gt;</span>	<span style="color: #006600; font-weight:bold;">&#123;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span>
+                     &lt;td style=&quot;font-weight:bold&quot;&gt;
+	                <span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">ActionLink</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;View Person&quot;</span>, <span style="color: #cc0000;">&quot;Show&quot;</span>, <span style="color: #0000ff; font-weight: bold;">new</span> <span style="color: #006600; font-weight:bold;">&#123;</span> id <span style="color: #006600; font-weight: bold;">=</span> p.<span style="color: #9900cc;">Id</span> <span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #000000; font-weight: bold;">%&gt;</span>
+	             &lt;/td&gt;
+                <span style="color: #000000; font-weight: bold;">&lt;%</span> <span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     	<span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">RowStart</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #006600; font-weight:bold;">&#40;</span>p,row<span style="color: #006600; font-weight:bold;">&#41;</span>  <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>     
+             <span style="color: #990099; font-weight: bold;">if</span> <span style="color: #006600; font-weight:bold;">&#40;</span>row.<span style="color: #9900cc;">IsAlternate</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #006600; font-weight:bold;">&#123;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span>
+                   &lt;tr style=&quot;background-color:#CCDDCC&quot;&gt;
+             <span style="color: #000000; font-weight: bold;">&lt;%</span>  <span style="color: #006600; font-weight:bold;">&#125;</span>  <span style="color: #990099; font-weight: bold;">else</span>  <span style="color: #006600; font-weight:bold;">&#123;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span>
+                 &lt;tr&gt;
+             <span style="color: #000000; font-weight: bold;">&lt;%</span> <span style="color: #006600; font-weight:bold;">&#125;</span>
+    <span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Render</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+<p>
+Note the following differences:
+</p>
+<ul>
+<li>The ActionSyntax requires the use of &lt;% %&gt; tags rather than &lt;%= %&gt; tags.</li>
+<li>The ActionSyntax requires that you end your grid definition with a call to the Render method or <strong>the grid will not show up if you do not call Render.</strong></li>
+<li>You must terminate the call to Render with a semicolon</li> 
+<li>You can directly embed HTML in the grid definition rather than using strings or partial views</li>
+</ul>
+<p>
+Both syntaxes have their advantages and disadvantages but the end result is the same. You're free to use whichever one you prefer. 
+</p>
+<p>
+**Both the partial view/actionsyntax approach are designed only for complex column definitions. This example was quite contrived and you could achieve the same result with a far simpler approach:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;">&lt;style type=&quot;text/css&quot;&gt;
+.gridrow_alternate { background-color:#CCDDCC; }
+&lt;/style&gt;
+<span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model<span style="color: #006600; font-weight:bold;">&#41;</span>
+	.<span style="color: #9900cc;">Columns</span><span style="color: #006600; font-weight:bold;">&#40;</span>column <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+  		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Id</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Named</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;Person ID&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Gender</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>    
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">DateOfBirth</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Format</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;{0:d}&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> Html.<span style="color: #9900cc;">ActionLink</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;View Person&quot;</span>, <span style="color: #cc0000;">&quot;Show&quot;</span>, <span style="color: #0000ff; font-weight: bold;">new</span> <span style="color: #006600; font-weight:bold;">&#123;</span> id <span style="color: #006600; font-weight: bold;">=</span> p.<span style="color: #9900cc;">Id</span> <span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight:bold;">&#41;</span>
+                           .<span style="color: #9900cc;">Attributes</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #0000ff; font-weight: bold;">new</span> Hash<span style="color: #006600; font-weight:bold;">&#40;</span>style <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #cc0000;">&quot;font-weight:bold&quot;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     	<span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+

@@ -1,0 +1,45 @@
+---
+layout: post
+title: "Sharing your iTunes Library between OS X and Windows"
+category: 
+postId: 194
+---
+<p>My main computer is an Apple MacBook Pro running both <a href="http://www.apple.com/macosx/">OS X Snow Leopard</a> and <a href="http://www.microsoft.com/windows/windows-7/">Windows 7</a> using <a href="http://www.apple.com/support/bootcamp/">Boot Camp</a>. I tend to boot between the two operating systems quite frequently so I wanted to see if it was possible to share my iTunes library between them.</p>
+<p>
+It turns out that this is quite easy to set up. This guide assumes that the OS X iTunes library is your 'main' library and that iTunes is set to "Keep iTunes Music Folder organized".
+</p>
+<h2>Step 1 - Rename the "iTunes Library" file</h2>
+<p>
+By default, the OS X version of iTunes stores your iTunes library in a file called "iTunes Library" under ~/Music/iTunes. You'll need to rename this file in order to give it a .itl extension in order for the windows version of iTunes to use it (the OS X version of iTunes can use the file both with or without the .itl file extension).
+</p>
+<p>
+<img src="http://www.jeremyskinner.co.uk/wp-content/uploads/2009/09/itunes-rename1.png" alt="itunes-rename" title="itunes-rename" width="268" height="156" class="alignnone size-full wp-image-203" />
+</p>
+<h2>Step 2 - Install MacDrive</h2>
+<p>
+On your Windows partition install <a href="http://www.mediafour.com/products/macdrive/">MacDrive</a>. This is a $49 piece of software that allows you to read and write mac-formatted drives from under Windows*. Once this is installed, your OS X partition will be available to read and write (in my case, as the "E:" drive)
+</p>
+<p>
+<h2>Step 3 - Create the symbolic link</h2>
+<p>
+In Windows, delete your existing iTunes folder (under %USERPROFILE%MusiciTunes) and then create a symbolic link that points to your Mac iTunes library. This can be done by opening a command prompt and issuing the following commands:
+</p>
+<pre>cd %USERPROFILE%Music</pre>
+<pre>mklink /d iTunes E:Users&lt;Your username&gt;MusiciTunes</pre>
+<p>
+You should see output like this:
+</p>
+<p>
+<img src="http://www.jeremyskinner.co.uk/wp-content/uploads/2009/09/itunes-symlink.PNG" alt="itunes-symlink" title="itunes-symlink" width="625" height="199" class="alignnone size-full wp-image-196" />
+</p>
+<p><strong>Note:</strong> The mlink command is only available in Windows Vista or newer</p>
+<h2>Step 4 - Rock and Roll</h2>
+<p>
+At this point you should be able to open iTunes and your library should be available. The only irritation I've found is that each time you switch operating systems iTunes has to re-build the library. My library is very small so this only takes a few seconds. On a larger library this could be more problematic.
+</p>
+<p>
+<img src="http://www.jeremyskinner.co.uk/wp-content/uploads/2009/09/UpdatingItunesLibrary.PNG" alt="UpdatingItunesLibrary" title="UpdatingItunesLibrary" width="478" height="166" class="alignnone size-full wp-image-197" />
+</p>
+<p>
+<strong>* Note:</strong> if you don't want to pay for MacDrive you could always reverse the process and keep the main iTunes library under Windows and then use <a href="http://code.google.com/p/macfuse/">MacFuse</a> to read/write your windows partition from under OS X.
+</p>

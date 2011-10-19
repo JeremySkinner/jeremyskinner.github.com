@@ -1,0 +1,237 @@
+---
+layout: post
+title: "Linq to Sql and ASP.NET MVC - AutoCommit and the RoutePreParser"
+category: .NET
+postId: 298
+---
+<p>
+This is the second in a series of posts on using ASP.NET MVC with Linq to Sql:
+</p>
+<ul>
+<li>Part 1 - <a href="http://www.jeremyskinner.co.uk/2010/01/31/linq-to-sql-and-asp-net-mvc-datacontext-per-request/">DataContext Per Request</a></li>
+<li>Part 2 - <a href="http://www.jeremyskinner.co.uk/2010/02/01/linq-to-sql-and-asp-net-mvc-autocommit-and-the-routepreparser/">AutoCommit and the RoutePreParser</a></li>
+<li>Part 3 - <a href="http://www.jeremyskinner.co.uk/2010/02/02/linq-to-sql-and-asp-net-mvc-dataloadoptions-per-request/">DataLoadOptions per Request</a></li>
+</ul>
+<p>
+Code for this series is <a href="http://cloud.github.com/downloads/JeremySkinner/Experiments/LinqToSqlWithMvc.zip">available here</a>.
+</p>
+<p>
+In my previoust post, I demonstrated how you could scope a Linq to Sql DataContext to a single HTTP Request by using StructureMap to manage the lifetime of the DataContext instance. This often works well, but has a couple of gotchas. Let's take a look at an example:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PostController <span style="color: #008000;">:</span> Controller <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">readonly</span> BlogDataContext context<span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> PostController<span style="color: #000000;">&#40;</span>BlogDataContext context<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">context</span> <span style="color: #008000;">=</span> context<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> ActionResult Create<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #000000;">&#91;</span>AcceptVerbs<span style="color: #000000;">&#40;</span>HttpVerbs.<span style="color: #0000FF;">Post</span><span style="color: #000000;">&#41;</span>, AutoCommit<span style="color: #000000;">&#93;</span>
+	<span style="color: #0600FF;">public</span> ActionResult Create<span style="color: #000000;">&#40;</span>Post post<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		context.<span style="color: #0000FF;">Posts</span>.<span style="color: #0000FF;">InsertOnSubmit</span><span style="color: #000000;">&#40;</span>post<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">return</span> RedirectToAction<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Show&quot;</span>, <span style="color: #008000;">new</span><span style="color: #000000;">&#123;</span> id <span style="color: #008000;">=</span> post.<span style="color: #0000FF;">Id</span> <span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> ActionResult Show<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">int</span> id<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var post <span style="color: #008000;">=</span> context.<span style="color: #0000FF;">Posts</span>.<span style="color: #0000FF;">SingleOrDefault</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Id</span> <span style="color: #008000;">==</span> id<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>post <span style="color: #008000;">==</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">throw</span> <span style="color: #008000;">new</span> HttpException<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">404</span>, <span style="color: #666666;">&quot;The post could not be found.&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+		<span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span>post<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+In this example, we have a Post controller for our fictional Blog database. The Create action renders a view where the user can create a new Post and then sends an HTTP POST to the other overload to the Create action (decorated with AcceptVerbs(HttpVerbs.Post)). 
+</p>
+
+<p>
+This action is decorated with the AutoCommit attribute from my <a href="http://www.jeremyskinner.co.uk/2010/01/31/linq-to-sql-and-asp-net-mvc-datacontext-per-request/">previous post</a> so that SubmitChanges will automatically be called on our DataContext. We then redirect to the "Show" action passing the Id of the newly created post in the route data. 
+</p>
+
+<p>
+The Show action loads the Post from the database with the corresponding Id and displays it to the user. If a post with the specified Id could not be found, it will throw a 404 exception.
+</p>
+
+<p>
+There is a bug here that may not be immediately obvious. Assume that the Post's Id property is generated by an auto-incrementing Identity field in the database. If you were to run this application and create a new Post, the Show action <strong>will always throw 404 even though the Post has been successfully created.</strong></p>
+
+<p>This happens because of when SubmitChanges is called. Our AutoCommit filter is invoked <strong>after the action has finished executing</strong> this means that at the time we call RedirectToAction("Show", new{ id = post.Id }) the new post <strong>has not yet been saved, so its Id will be 0</strong>.</p>
+
+<p>Linq to Sql will not update the Id property until after SubmitChanges is called, which is too late in the process. The user will end up being redirected to Post/Show/0 instead of using the Id of the newly created post. 
+</p>
+
+<p>
+The simple workaround is to call SubmitChanges directly inside the action:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #000000;">&#91;</span>AcceptVerbs<span style="color: #000000;">&#40;</span>HttpVerbs.<span style="color: #0000FF;">Post</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span>
+<span style="color: #0600FF;">public</span> ActionResult Create<span style="color: #000000;">&#40;</span>Post post<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	context.<span style="color: #0000FF;">Posts</span>.<span style="color: #0000FF;">InsertOnSubmit</span><span style="color: #000000;">&#40;</span>post<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>ModelState.<span style="color: #0000FF;">IsValid</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">using</span> <span style="color: #000000;">&#40;</span>var transaction <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> TransactionScope<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			context.<span style="color: #0000FF;">SubmitChanges</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+			transaction.<span style="color: #0000FF;">Complete</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">return</span> RedirectToAction<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Show&quot;</span>, <span style="color: #008000;">new</span> <span style="color: #000000;">&#123;</span> id <span style="color: #008000;">=</span> post.<span style="color: #0000FF;">Id</span> <span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+...but this then makes our AutoCommit attribute useless and also makes the controller action significantly more complex.
+</p>
+
+<p>
+However, there is another approach we could use which still allows us to use the AutoCommit attribute. To understand this, we first need to look at the order in which things are happening when our action is invoked:
+</p>
+<ol>
+<li>The IoC container creates our DataContext</li>
+<li>The controller is instantiated and the DataContext is passed to its constructor</li>
+<li>The Create action is invoked with a Post instance created by MVC's DefaultModelBinder</li>
+<li>The post is attached to the DataContext by calling InsertOnSubmit</li>
+<li>A RedirectToRouteResult is created by calling "RedirectToAction" with a dictionary of route values</li>
+<li>The AutoCommit attribute calls SubmitChanges to our DataContext</li>
+<li>The Post is written to the database</li>
+<li>ExecuteResult on RedirectToRouteResult is invoked</li>
+<li>The Redirect URL is generated by the RouteCollection</li>
+<li>The user's browser is redirected to this URL</li>
+</ol>
+
+<p>
+Instead of passing the Post Id (which will be 0) to RedirectToAction, <strong>we could pass the entire post instance.</strong> After the post has been saved we can then *replace* the post instance in the RouteValueDictionary with the post's Id before the URL is generated. This can be done by intercepting the RouteValueDictionary just before the URL is generated.
+</p>
+<h3>Introducing the RoutePreParser</h3>
+<p>
+The first thing we need is a way to identify how an object (in this case, our Post) should be converted to a route value. To do this, we can create an interface, IUrlRoutable:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">interface</span> IUrlRoutable <span style="color: #000000;">&#123;</span>
+	<span style="color: #FF0000;">object</span> GetRouteParameter<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+...and we can implement this interface in our Post class:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">partial</span> <span style="color: #FF0000;">class</span> Post <span style="color: #008000;">:</span> IUrlRoutable <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">object</span> GetRouteParameter<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> Id<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+
+<p>
+Next we can create a "fake" route. This route never generates a URL or handles a request - it is merely used to intercept the RouteValueDictionary before a URL is generated:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> RoutePreParser <span style="color: #008000;">:</span> RouteBase <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> RouteData GetRouteData<span style="color: #000000;">&#40;</span>HttpContextBase httpContext<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> null<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> VirtualPathData GetVirtualPath<span style="color: #000000;">&#40;</span>RequestContext requestContext, RouteValueDictionary values<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var query <span style="color: #008000;">=</span> from pair <span style="color: #0600FF;">in</span> values
+				where pair.<span style="color: #0000FF;">Value</span> <span style="color: #008000;">!=</span> <span style="color: #0600FF;">null</span>
+				let routable <span style="color: #008000;">=</span> pair.<span style="color: #0000FF;">Value</span> <span style="color: #0600FF;">as</span> IUrlRoutable
+				where routable <span style="color: #008000;">!=</span> <span style="color: #0600FF;">null</span>
+				select <span style="color: #008000;">new</span> <span style="color: #000000;">&#123;</span> pair.<span style="color: #0000FF;">Key</span>, Value <span style="color: #008000;">=</span> routable.<span style="color: #0000FF;">GetRouteParameter</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#125;</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #0600FF;">foreach</span> <span style="color: #000000;">&#40;</span>var pair <span style="color: #0600FF;">in</span> query.<span style="color: #0000FF;">ToList</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			values<span style="color: #000000;">&#91;</span>pair.<span style="color: #0000FF;">Key</span><span style="color: #000000;">&#93;</span> <span style="color: #008000;">=</span> pair.<span style="color: #0000FF;">Value</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+		<span style="color: #0600FF;">return</span> null<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+Here we loop through each key-value pair in the RouteValueDictionary. If the value implements IUrlRoutable then we call GetRouteParameter on that object and <strong>replace the original value in the RouteValueDictionary with the result of this method.</strong>
+</p>
+
+<p>
+Next, we have to add the fake route to the RouteCollection in Application_Start. Note that this <strong>must be the first route added so that it gets a chance to intercept the RouteValueDictionary.</strong>
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #0600FF;">void</span> RegisterRoutes<span style="color: #000000;">&#40;</span>RouteCollection routes<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	<span style="color: #008080; font-style: italic;">//Add our fake route first</span>
+	routes.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> RoutePreParser<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	routes.<span style="color: #0000FF;">IgnoreRoute</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;{resource}.axd/{*pathInfo}&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	routes.<span style="color: #0000FF;">MapRoute</span><span style="color: #000000;">&#40;</span>
+		<span style="color: #666666;">&quot;Default&quot;</span>, <span style="color: #008080; font-style: italic;">// Route name</span>
+		<span style="color: #666666;">&quot;{controller}/{action}/{id}&quot;</span>, <span style="color: #008080; font-style: italic;">// URL with parameters</span>
+		<span style="color: #008000;">new</span> <span style="color: #000000;">&#123;</span> controller <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;Home&quot;</span>, action <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;Index&quot;</span>, id <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;&quot;</span> <span style="color: #000000;">&#125;</span> <span style="color: #008080; font-style: italic;">// Parameter defaults</span>
+	<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+Now, in our controller action we change the Create action to store the Post instance in the route values:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #000000;">&#91;</span>AcceptVerbs<span style="color: #000000;">&#40;</span>HttpVerbs.<span style="color: #0000FF;">Post</span><span style="color: #000000;">&#41;</span>, AutoCommit<span style="color: #000000;">&#93;</span>
+<span style="color: #0600FF;">public</span> ActionResult Create<span style="color: #000000;">&#40;</span>Post post<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	context.<span style="color: #0000FF;">Posts</span>.<span style="color: #0000FF;">InsertOnSubmit</span><span style="color: #000000;">&#40;</span>post<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #0600FF;">return</span> RedirectToAction<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Show&quot;</span>, <span style="color: #008000;">new</span><span style="color: #000000;">&#123;</span> id <span style="color: #008000;">=</span> post <span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+...and everything now works as expected.
+</p>
+
+<p>
+To recap, this is the new chain of events:
+</p>
+
+<ol>
+<li>The IoC container creates our DataContext</li>
+<li>The controller is instantiated and the DataContext is passed to its constructor</li>
+<li>The Create action is invoked with a Post instance created by MVC's DefaultModelBinder</li>
+<li>The post is attached to the DataContext by calling InsertOnSubmit</li>
+<li>A RedirectToRouteResult is created by calling "RedirectToAction" with a dictionary of route values. (The "Id" parameter is our new Post instance.)
+</li>
+<li>The AutoCommit attribute calls SubmitChanges to our DataContext</li>
+<li>The Post is written to the database</li>
+<li>The Post instance stored in the RouteValueDictionary automatically has its Id property updated</li>
+<li>ExecuteResult on RedirectToRouteResult is invoked</li>
+<li>Our RoutePreParser inspects the RouteValueDictionary.</li>
+<li>GetRouteParameter on Post is invoked, returning the now-populated Post Id</li>
+<li>The RoutePreParser removes the Post instance from the RouteValueDictionary</li>
+<li>The RoutePreParser inserts the Post Id as the "id" in the RouteValueDictionary</li>
+<li>The (now correct) redirect URL is generated by the RouteCollection</li>
+<li>The user's browser is redirected to this URL</li>
+</ol>

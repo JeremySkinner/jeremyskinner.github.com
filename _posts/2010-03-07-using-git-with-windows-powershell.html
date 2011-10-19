@@ -1,0 +1,129 @@
+---
+layout: post
+title: "Using Git with Windows Powershell"
+category: git
+postId: 483
+---
+<p>Whenever I’m working with a <a href="http://git-scm.com/">Git</a> repository I tend to do so from a Windows Powershell command line running inside <a href="http://console.sourceforge.net">Console</a>. I prefer this to the UNIX-like “git bash” that comes with msysgit and it’s fairly straightforward to extend Powershell to provide git integration.</p>  <h3>Custom Prompt</h3>  <p>The first thing that I have is a custom prompt when I’m within a Git repository:</p>  <p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/gitprompt.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="gitprompt" border="0" alt="gitprompt" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/gitprompt_thumb.png" width="437" height="250" /></a> </p>  <p>This prompt shows various pieces of information about the current git repository:</p>  <ul>   <li>“1.3” – The name of the current branch that I’m working on </li>    <li>“+0” – The number of files that have been added since the last commit </li>    <li>“~1” – The number of files that have been modified since the last commit </li>    <li>“-0” – The number of files that have been deleted since the last commit </li>    <li>“!” – Whether or not there are untracked files in the working directory </li> </ul>  <p>Essentially this is implemented by writing a custom “prompt” function inside your Powershell profile. My colleague <a href="http://www.markembling.info">Mark Embling</a>&#160;<a href="http://www.markembling.info/view/my-ideal-powershell-prompt-with-git-integration">wrote about this in detail.</a> </p>  <h3></h3>  <h3>Tab Expansion</h3>  <p>I also use a custom TabExpansion function that provides tab-completion for common git commands.</p>  <p>For example, if I type “git ch&lt;tab&gt;” then powershell will insert “git checkout”. This is taken further by providing auto-completion for branch names and remote names, so typing “git push &lt;tab&gt;” would automatically fill in “git push origin” and “git push origin &lt;tab&gt;” would then cycle through my local branches.</p>  <p>To implement a custom TabExpansion function, you’ll need to open your Powershell profile (stored in DocumentsWindowsPowershellProfile.ps1). If this file doesn’t exist, then you’ll need to create it. </p>  <p>Next, create a function called “TabExpansion”. This function takes two arguments – the last word that was entered before the user hit the tab key as well as the entire line that has been entered into the prompt. Inside this function, we want to parse the entire line in order to extract the last “block” (ie the last piece of input not separated by a semicolon or a pipe):</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:a6e697e7-27f0-4182-a26a-e7da4d0a3d5b" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="powershell" style="font-family:monospace;"><span style="color: #0000FF;">function</span> TabExpansion<span style="color: #000000;">&#40;</span><span style="color: #800080;">$line</span><span style="color: pink;">,</span> <span style="color: #800080;">$lastWord</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #800080;">$LineBlocks</span> <span style="color: pink;">=</span> <span style="color: #000000;">&#91;</span><span style="color: #008080;">regex</span><span style="color: #000000;">&#93;</span>::Split<span style="color: #000000;">&#40;</span><span style="color: #800080;">$line</span><span style="color: pink;">,</span> <span style="color: #800000;">'[|;]'</span><span style="color: #000000;">&#41;</span>
+  <span style="color: #800080;">$lastBlock</span> <span style="color: pink;">=</span> <span style="color: #800080;">$LineBlocks</span><span style="color: #000000;">&#91;</span><span style="color: pink;">-</span><span style="color: #000000;">1</span><span style="color: #000000;">&#93;</span> 
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Next, we can use a regular expression to see whether the block begins with “git “. If so, then we’ll hand the input off to a function called “gitTabExpansion”:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:a11b36de-cfe9-4e47-a4c8-d0d871d1a729" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="powershell" style="font-family:monospace;"><span style="color: #0000FF;">function</span> TabExpansion<span style="color: #000000;">&#40;</span><span style="color: #800080;">$line</span><span style="color: pink;">,</span> <span style="color: #800080;">$lastWord</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #800080;">$LineBlocks</span> <span style="color: pink;">=</span> <span style="color: #000000;">&#91;</span><span style="color: #008080;">regex</span><span style="color: #000000;">&#93;</span>::Split<span style="color: #000000;">&#40;</span><span style="color: #800080;">$line</span><span style="color: pink;">,</span> <span style="color: #800000;">'[|;]'</span><span style="color: #000000;">&#41;</span>
+  <span style="color: #800080;">$lastBlock</span> <span style="color: pink;">=</span> <span style="color: #800080;">$LineBlocks</span><span style="color: #000000;">&#91;</span><span style="color: pink;">-</span><span style="color: #000000;">1</span><span style="color: #000000;">&#93;</span> 
+&nbsp;
+  <span style="color: #0000FF;">switch</span> <span style="color: #FF0000;">-regex</span> <span style="color: #000000;">&#40;</span><span style="color: #800080;">$lastBlock</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #800000;">'git (.*)'</span> <span style="color: #000000;">&#123;</span> gitTabExpansion<span style="color: #000000;">&#40;</span><span style="color: #800080;">$lastBlock</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#125;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p></p>
+
+<p>The gitTabExpansion again uses regular expressions to identify what the user has entered and acts appropriately:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:fd3b117b-e058-432f-a1db-5ca3a836626a" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="powershell" style="font-family:monospace;"><span style="color: #0000FF;">function</span> gitTabExpansion<span style="color: #000000;">&#40;</span><span style="color: #800080;">$lastBlock</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+     <span style="color: #0000FF;">switch</span> <span style="color: #FF0000;">-regex</span> <span style="color: #000000;">&#40;</span><span style="color: #800080;">$lastBlock</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+&nbsp;
+        <span style="color: #008000;">#Handles git branch -x -y -z &lt;branch name&gt;</span>
+        <span style="color: #800000;">'git branch -(d|D) (S*)$'</span> <span style="color: #000000;">&#123;</span>
+          gitLocalBranches<span style="color: #000000;">&#40;</span><span style="color: #800080;">$matches</span><span style="color: #000000;">&#91;</span><span style="color: #000000;">2</span><span style="color: #000000;">&#93;</span><span style="color: #000000;">&#41;</span>
+        <span style="color: #000000;">&#125;</span>
+&nbsp;
+        <span style="color: #008000;">#handles git checkout &lt;branch name&gt;</span>
+        <span style="color: #008000;">#handles git merge &lt;brancj name&gt;</span>
+        <span style="color: #800000;">'git (checkout|merge) (S*)$'</span> <span style="color: #000000;">&#123;</span>
+          gitLocalBranches<span style="color: #000000;">&#40;</span><span style="color: #800080;">$matches</span><span style="color: #000000;">&#91;</span><span style="color: #000000;">2</span><span style="color: #000000;">&#93;</span><span style="color: #000000;">&#41;</span>
+        <span style="color: #000000;">&#125;</span>
+&nbsp;
+        <span style="color: #008000;">#handles git &lt;cmd&gt;</span>
+        <span style="color: #008000;">#handles git help &lt;cmd&gt;</span>
+        <span style="color: #800000;">'git (help )?(S*)$'</span> <span style="color: #000000;">&#123;</span>      
+          gitCommands<span style="color: #000000;">&#40;</span><span style="color: #800080;">$matches</span><span style="color: #000000;">&#91;</span><span style="color: #000000;">2</span><span style="color: #000000;">&#93;</span><span style="color: #000000;">&#41;</span>
+        <span style="color: #000000;">&#125;</span>
+&nbsp;
+        <span style="color: #008000;">#handles git push remote &lt;branch&gt;</span>
+        <span style="color: #008000;">#handles git pull remote &lt;branch&gt;</span>
+        <span style="color: #800000;">'git (push|pull) (S+) (S*)$'</span> <span style="color: #000000;">&#123;</span>
+          gitLocalBranches<span style="color: #000000;">&#40;</span><span style="color: #800080;">$matches</span><span style="color: #000000;">&#91;</span><span style="color: #000000;">3</span><span style="color: #000000;">&#93;</span><span style="color: #000000;">&#41;</span>
+        <span style="color: #000000;">&#125;</span>
+&nbsp;
+        <span style="color: #008000;">#handles git pull &lt;remote&gt;</span>
+        <span style="color: #008000;">#handles git push &lt;remote&gt;</span>
+        <span style="color: #800000;">'git (push|pull) (S*)$'</span> <span style="color: #000000;">&#123;</span>
+          gitRemotes<span style="color: #000000;">&#40;</span><span style="color: #800080;">$matches</span><span style="color: #000000;">&#91;</span><span style="color: #000000;">2</span><span style="color: #000000;">&#93;</span><span style="color: #000000;">&#41;</span>
+        <span style="color: #000000;">&#125;</span>
+    <span style="color: #000000;">&#125;</span>	
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Hopefully the comments are pretty self explanatory. The gitLocalBranches, gitCommands and gitRemotes functions invoke the appropriate git command and parse the output:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:116dea06-fe5e-4c8b-8703-680ee61f5bfe" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="powershell" style="font-family:monospace;"><span style="color: #0000FF;">function</span> gitCommands<span style="color: #000000;">&#40;</span><span style="color: #800080;">$filter</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #800080;">$cmdList</span> <span style="color: pink;">=</span> <span style="color: pink;">@</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+  <span style="color: #800080;">$output</span> <span style="color: pink;">=</span> git help
+  <span style="color: #0000FF;">foreach</span><span style="color: #000000;">&#40;</span><span style="color: #800080;">$line</span> <span style="color: #0000FF;">in</span> <span style="color: #800080;">$output</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #0000FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #800080;">$line</span> <span style="color: #FF0000;">-match</span> <span style="color: #800000;">'^   (S+) (.*)'</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      <span style="color: #800080;">$cmd</span> <span style="color: pink;">=</span> <span style="color: #800080;">$matches</span><span style="color: #000000;">&#91;</span><span style="color: #000000;">1</span><span style="color: #000000;">&#93;</span>
+      <span style="color: #0000FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #800080;">$filter</span> <span style="color: #FF0000;">-and</span> <span style="color: #800080;">$cmd</span>.StartsWith<span style="color: #000000;">&#40;</span><span style="color: #800080;">$filter</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+        <span style="color: #800080;">$cmdList</span> <span style="color: pink;">+=</span> <span style="color: #800080;">$cmd</span>.Trim<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+      <span style="color: #000000;">&#125;</span>
+      <span style="color: #0000FF;">elseif</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">-not</span> <span style="color: #800080;">$filter</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+        <span style="color: #800080;">$cmdList</span> <span style="color: pink;">+=</span> <span style="color: #800080;">$cmd</span>.Trim<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+      <span style="color: #000000;">&#125;</span>
+    <span style="color: #000000;">&#125;</span>
+  <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #800080;">$cmdList</span> <span style="color: pink;">|</span> <span style="color: #008080; font-weight: bold;">sort</span>
+ <span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0000FF;">function</span> gitRemotes<span style="color: #000000;">&#40;</span><span style="color: #800080;">$filter</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #0000FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #800080;">$filter</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    git remote <span style="color: pink;">|</span> <span style="color: #0000FF;">where</span> <span style="color: #000000;">&#123;</span> <span style="color: #000080;">$_</span>.StartsWith<span style="color: #000000;">&#40;</span><span style="color: #800080;">$filter</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#125;</span>
+  <span style="color: #000000;">&#125;</span>
+  <span style="color: #0000FF;">else</span> <span style="color: #000000;">&#123;</span>
+    git remote
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0000FF;">function</span> gitLocalBranches<span style="color: #000000;">&#40;</span><span style="color: #800080;">$filter</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+   git branch <span style="color: pink;">|</span> <span style="color: #0000FF;">foreach</span> <span style="color: #000000;">&#123;</span> 
+      <span style="color: #0000FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #000080;">$_</span> <span style="color: #FF0000;">-match</span> <span style="color: #800000;">&quot;^*?s*(.*)&quot;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span> 
+        <span style="color: #0000FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #800080;">$filter</span> <span style="color: #FF0000;">-and</span> <span style="color: #800080;">$matches</span><span style="color: #000000;">&#91;</span><span style="color: #000000;">1</span><span style="color: #000000;">&#93;</span>.StartsWith<span style="color: #000000;">&#40;</span><span style="color: #800080;">$filter</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+          <span style="color: #800080;">$matches</span><span style="color: #000000;">&#91;</span><span style="color: #000000;">1</span><span style="color: #000000;">&#93;</span>
+        <span style="color: #000000;">&#125;</span>
+        <span style="color: #0000FF;">elseif</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">-not</span> <span style="color: #800080;">$filter</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+          <span style="color: #800080;">$matches</span><span style="color: #000000;">&#91;</span><span style="color: #000000;">1</span><span style="color: #000000;">&#93;</span>
+        <span style="color: #000000;">&#125;</span>
+      <span style="color: #000000;">&#125;</span> 
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>At the moment the functionality is quite limited but already I find this extremely useful when working with git repositories – it has already saved me countless keystrokes throughout the day.</p>
+
+<p>I have also created similar functionality for Mercurial repositories which <a href="http://www.jeremyskinner.co.uk/2010/04/21/using-mercurial-with-windows-powershell/">I’ve posted about here</a>.</p>

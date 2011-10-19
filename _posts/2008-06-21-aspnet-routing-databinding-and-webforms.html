@@ -1,0 +1,109 @@
+---
+layout: post
+title: "ASP.NET Routing, DataBinding and WebForms"
+category: .NET
+postId: 34
+---
+<p><strong>Update 13/09/08</strong> I've posted a new version of the sample which is compatible with .NET 3.5 SP1. <a href="/files/RoutingWithAutoBinding-v2.zip">It can be found here.</a></p>
+<p>
+One of the great things about ASP.NET MVC is the automatic databinding support for routing. For example, if you define a route like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">routes.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> Route<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;{controller}/{action}/{id}&quot;</span>, <span style="color: #008000;">new</span> MvcRouteHandler<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	Defaults <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> RouteValueDictionary<span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> <span style="color: #000000;">&#123;</span> action <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;Index&quot;</span>, id <span style="color: #008000;">=</span> <span style="color: #000000;">&#40;</span><span style="color: #FF0000;">string</span><span style="color: #000000;">&#41;</span><span style="color: #0600FF;">null</span> <span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span>
+<span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+<p>...and you have a controller like this:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> HomeController <span style="color: #008000;">:</span> Controller <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> ActionResult Show<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">int</span> id<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #008080; font-style: italic;">// do stuff</span>
+		<span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+...then visiting a url like <strong>mysite.com/Home/Show/5</strong> will automatically popuate the id parameter of the Show action with the value 5.
+</p>
+<p>
+I thought it would be fun to see if I could get something similar working using WebForms. It actually turned out to be quite straightforward.
+</p>
+<p>
+First, you'll need to set up ASP.NET Routing to work with WebForms. I'm using Phil Haack's WebFormRouting library which can be found <a href="http://haacked.com/archive/2008/05/19/updated-routing-with-webforms.aspx">here</a>.
+</p>
+<p>
+I've added an extension method to RouteCollection that allows me to declare routes like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">RouteTable.<span style="color: #0000FF;">Routes</span>.<span style="color: #0000FF;">MapWithAutoBinding</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Customer/{CustomerId}&quot;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">To</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;~/Customer.aspx&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+<p>
+In the code behind file for my customer.aspx page I can now declare a property like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">partial</span> <span style="color: #FF0000;">class</span> Customer <span style="color: #008000;">:</span> Page <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">void</span> Page_Load<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">object</span> sender, EventArgs e<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		customerNameLabel.<span style="color: #0000FF;">Text</span> <span style="color: #008000;">=</span> CustomerId<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #000000;">&#91;</span>DataBind<span style="color: #000000;">&#93;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> CustomerId <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+So when I visit MySite.com/Customer/Jeremy the "CustomerId" property on the Customer.aspx page will automatically be set to "Jeremy".
+</p>
+<h2>How does it work?</h2>
+<p>
+Calling RouteTable.MapWithAutoBinding will create a route using the <strong>AutoBoundWebFormRouteHandler</strong> which inherits from Phil Haack's WebFormRouteHandler. After GetHttpHandler is called, reflection is used to find any properties on the page that have a DataBindAttribute.
+</p>
+<p>
+The RequestContext is then passed to the <strong>PerformBinding</strong> method on the DataBindAttribute, which will find the appropriate value from the RouteData and invoke the property's setter.
+</p>
+<h2>Taking it a stage further: using Linq to Sql</h2>
+<p>
+Just for fun, I thought I'd see if it was possible to automatically fetch an entity from the database based on the value in the RouteData in a similar way to <a href="http://www.castleproject.org/monorail/documentation/trunk/integration/ar.html">Monorail's ARDataBind attribute</a>. I thought I'd try and use Linq to SQL as I haven't used this in a project before.
+</p>
+<p>
+The first stage was to inherit from the DataBindAttribute class and override the PerformBinding method. Now, instead of just passing the value from the RouteData to the property, we have to run a linq query using the value from the route data as the primary key. This is very easy to do thanks to the Dynamic Linq provider that Microsoft ship in the Visual Studio 2008 samples folder.</p>
+
+<p>
+So, now the property on the Customer.aspx page can look like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #000000;">&#91;</span>LinqBind<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;CustomerId&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span>
+<span style="color: #0600FF;">public</span> Customer Cust <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+The "CustomerId" being passed into the LinqBind attribute tells the binder the name of the RouteData value it should use as the primary key for the Customer entity. Currently, this only works with single primary keys, although it should be possible to get it work with composite keys too.</p>
+
+<p>Visiting <strong>mysite.com/customer/ALFKI</strong> will now run a linq query to load a customer from the Customers table using the customer id of "ALFKI" and then set the "Cust" property to be a reference to this entity.
+</p>
+<p>
+It is also necessary to tell the LinqBindAttribute which DataContext should be used to do the fetching. This can be set in the Global.asax's Application_Start method using a delegate:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">LinqBindAttribute.<span style="color: #0000FF;">DataContextFactory</span> <span style="color: #008000;">=</span> <span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #008000;">=&gt;</span> <span style="color: #008000;">new</span> MyDataContext<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+<p>
+I've uploaded the code <a href="http://www.jeremyskinner.me.uk/files/RoutingWithAutoBinding-v2.zip">here</a> if anyone wants to play with it. </p>
+
+<p>Disclaimer: The zip file contains Phil Haack's WebFormRouting.dll and Microsoft's Dynamic Linq provider from the Visual Studio 2008 samples.</p>

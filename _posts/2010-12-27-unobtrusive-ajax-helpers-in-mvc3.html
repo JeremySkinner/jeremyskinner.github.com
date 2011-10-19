@@ -1,0 +1,33 @@
+---
+layout: post
+title: "Unobtrusive Ajax helpers in MVC3"
+category: .NET
+postId: 612
+---
+<p>ASP.NET MVC has included Ajax helpers since its first release. These allow you to generate “ajax-enabled” html elements, such as hyperlinks or forms that submit data asynchronously. For example, you can use the Ajax.BeginForm method to construct an ajax-enabled form:</p>  <p>   <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:6892b8f4-71d6-4cfe-9c9b-9dd130b3e0fe" class="wlWriterEditableSmartContent"><pre lang="asp"><% using (Ajax.BeginForm("Save", new AjaxOptions { InsertionMode = InsertionMode.Replace, UpdateTargetId = "#myDiv" })) { %>
+  <input type="text" name="Name" />
+  <input type="submit" value="Save" />
+<% } %></pre></div>
+</p>
+
+<p>This would generate markup like this:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:4d2d567e-dd2f-4f99-98ec-33f63b800569" class="wlWriterEditableSmartContent"><pre lang="html"><form action="/Home/Save" method="post" onclick="Sys.Mvc.AsyncForm.handleClick(this, new Sys.UI.DomEvent(event));" onsubmit="Sys.Mvc.AsyncForm.handleSubmit(this, new Sys.UI.DomEvent(event), { insertionMode: Sys.Mvc.InsertionMode.replace, updateTargetId: &#39;#myDiv&#39; });">
+	<input type="text" name="Name" />
+	<input type="submit" value="Save" />
+</form></pre></div>
+
+<p>I never particularly liked these helpers – firstly, they required your page to include the MS-Ajax clientside library and secondly they defined inline javascript which goes against the <a href="http://en.wikipedia.org/wiki/Unobtrusive_JavaScript">unobtrusive javascript</a> principle. In the end, there isn’t really a compelling reason to use them over something like jQuery.</p>
+
+<p>However, in ASP.NET MVC 3 these helpers have been significantly improved. They no longer rely on the MS-Ajax client libraries to do their work – instead they use jQuery and the unobtrusive jQuery extensions that ship with MVC3. They also use HTML5 data- attributes to annotate a particular element with metadata rather than defining inline scripts. </p>
+
+<p>The above example now generates the following markup with MVC3:</p>
+
+<p>&#160;</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:ab63faeb-ee49-40e2-9955-19da40256150" class="wlWriterEditableSmartContent"><pre lang="csharp"><form action="/Home/Save" data-ajax="true" data-ajax-method="POST" data-ajax-mode="after" data-ajax-update="#myDiv" id="form0" method="post">
+    <input type="text" name="Name" />
+    <input type="submit" value="Save" />
+</form> </pre></div>
+
+<p>So long as you have both jQuery and the jQuery.unobtrusive-ajax scripts included then this form will automatically be “<a href="http://domscripting.com/blog/display/41">hijaxed</a>” and use javascript to submit the form if it’s enabled. Overall, a big improvement over the ajax helpers in MVC2.</p>

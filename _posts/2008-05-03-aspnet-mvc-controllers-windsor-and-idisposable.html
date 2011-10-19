@@ -1,0 +1,16 @@
+---
+layout: post
+title: "ASP.NET MVC Controllers, Windsor and IDisposable"
+category: .NET
+postId: 25
+---
+<p>I recently upgraded one of my larger intranet applications to the latest ASP.NET MVC release and after doing so, I noticed that the memory usage on our webserver would gradually go up and up. After 4-5 hours all the memory on the server was in use (2gb) and the only solution was to restart the application.
+</p>
+
+<p>
+After doing some investigation I realised what the problem was: System.Web.Mvc.Controller implements IDisposable and the <a href="http://castleproject.org/container/index.html">Windsor IoC container</a> will <a href="http://www.nablasoft.com/Alkampfer/?p=105">keep a reference to all transient objects that it creates if they implement IDisposable</a>. So not only was every controller being kept alive, but also <b>everything stored in the ViewData dictionary</b>.
+</p>
+
+<p>
+Explicitly calling container.Release() inside the controller factory's DisposeController method fixed the problem.
+</p>

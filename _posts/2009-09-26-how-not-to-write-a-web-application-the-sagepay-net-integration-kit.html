@@ -1,0 +1,48 @@
+---
+layout: post
+title: "How not to write a web application: The SagePay .NET integration kit"
+category: .NET
+postId: 213
+---
+<p>
+At work, we provide a small online store that allows students to pay for their course notes as well as examination fees through our intranet. For the last 4 years, we've been using <a href="http://www.sagepay.com">SagePay</a> (formerly Protx) to provide this functionality.</p>
+<p>
+However, requirements change and the time has come where we need to re-visit the online payments section of our system. Since the system was initially written, we've moved from WebForms to ASP.NET MVC. As the changes that needed to be made to the online store are fairly significant, we decided to take the opportunity to move the front-end to an ASP.NET MVC application.</p>
+
+<p>When it came time to test the part of the system that communicates with the SagePay servers I decided to make use of their 'Simulator' service - a sandboxed environment that allows you to test the data that you send/receive from SagePay.</p>
+
+<p>
+The 'simulator' requires the use of the latest version of the SagePay protocol. Unfortunately for us, we were still using version 2.22 but the simulator needed version 2.23. We were using the SagePay .NET integration kit - a .NET assembly that contains a collection of classes necessary to build and respond to the strangely-formatted HTTP Posts required by the SagePay protocol. So I went to the SagePay website to look for a new version of the integration kit that worked with the latest version of their protocol, only to find that this kit had been discontinued. 
+</p>
+
+<p>
+SagePay now offer a new 'integration kit' that is substantially different from the old version. The new kit no longer consists of a nice set of classes encapsulated in a .NET assembly, but is instead a sample ASP.NET web site (note I said "web site" not "web application"). Upon downloading the new integration kit I was both shocked and irritated by what I found. 
+</p>
+<p>
+Firstly, the kit is only available in VB - despite being marketed as a ".NET integration kit", it is really only a VB integration kit. No C# version available. It makes heavy use of VB-specific features (such as the backwards compatability functions in Microsoft.VisualBasic.dll) which makes it a pain to convert to C#. 
+</p>
+<p>
+Secondly, the instructions/comments that come with the kit are just plain wrong - in numerous places they make reference to a "Hashing component" that needs to be installed (with regsvr32!). This is a complete falsehood as the integration kit makes no use of this "hashing component" (the classic-ASP version of the kit does, but not the .NET version).
+</p>
+<p>
+Thirdly, it is tightly coupled to both WebForms and MySql. This means in order to use it in our application we would need to 1) translate it to C#, 2) remove all the web-forms specific code and 3) convert it from using MySqlConnection objects over to the ORM we're using. (Incidentally, why does a sample application like this need a MySql database? Isn't an in memory collection good enough?)
+</p>
+<p>
+Finally, the code contained in the project is riddled with bad practices. Concatenated SQL strings, custom encoding functions (rather than making use of what is in the framework) and everything takes place in the codebehind of the aspx pages. The OO nature of .NET seems to be completely ignored. This screenshot of one of the button click events sets the tone for the whole project:
+</p>
+<img alt="SagePay integration kit" src="/files/OnError.PNG" />
+<p>
+I'd highly recommend checking out the rest of the code in the SagePay .NET integration kit. It is a great example of how not to build a web application with .NET. It can be downloaded <a href="http://www.sagepay.com/developers/downloads/integration_kits/server/ASPNET_Kit.zip">from the SagePay website.</a>
+</p>
+<p>
+I get the impression that the developer who wrote the original .NET integration kit no longer works for SagePay as the new version appears to be written by someone who has very little understanding of .NET.
+</p>
+<p>
+I posted my frustration <a href="http://twitter.com/JeremySkinner">on twitter</a> a few weeks ago and received a response from <a href="http://twitter.com/Joe_SagePay">Joe_SagePay</a>. I sent him a long email with some detailed feedback on this new integration kit which he said he would pass on to their development team in order for them to provide me with a response. Two and a half weeks later I've heard nothing else.
+</p>
+<p>
+In the end, instead of trying to make sense of the messy code contained in the integration kit we decided to write our own implementation of the VSP Server protocol. This is now available <a href="http://github.com/JeremySkinner/SagePayMvc">as the SagePayMvc project on GitHub</a> and released under the Apache 2 license.
+</p>
+<p>
+Tomorrow I'll <a href="http://www.jeremyskinner.co.uk/2009/09/27/using-sagepay-with-asp-net-mvc/">write a more detailed post about the SagePayMvc library</a> and how it can be used inside an ASP.NET MVC application.
+</p>

@@ -1,0 +1,40 @@
+---
+layout: post
+title: "Rails-like features in C# 3"
+category: .NET
+postId: 17
+---
+<p>I recently purchased a copy of <a href="http://www.amazon.co.uk/Agile-Development-Rails-Pragmatic-Programmers/dp/0977616630/ref=pd_bbs_sr_1?ie=UTF8&amp;s=books&amp;qid=1196774162&amp;sr=8-1">Agile Web Development with Rails</a> in an attempt to learn more about Ruby on Rails. I've been slowly working through the sample application and so far working with Rails has been a very pleasant experience.</p><p>One of the thing I really like about RoR is the very readable method names. For example, compare Ruby on Rails "Times" method to a C# "For" loop:</p>
+<pre>
+// C#
+for(int i = 0; i &lt; 10; i++) {
+  Console.WriteLine(i);
+}
+
+# Rails
+10.times do |i|
+  puts i
+end
+</pre>
+<p>I know which one I prefer. </p>
+<p>Just for fun, I decided to write a number of Rails-like methods using <a href="http://weblogs.asp.net/scottgu/archive/2007/03/13/new-orcas-language-feature-extension-methods.aspx">C# Extension Methods.</a> Here are some examples:</p>
+
+<pre>//Rails style "For" loop
+3.Times(i =&gt; Console.WriteLine(i));
+
+//Rails style "Foreach" loop
+List&lt;int&gt; ints = new List { 1, 2, 3 };
+ints.Each(i =&gt; Console.WriteLine(i));
+
+//Working with dates and times...
+DateTime tenDaysAgo = 10.Days().Ago();
+DateTime threeHoursInTheFuture = 3.Hours().FromNow();
+//Or...
+threeHoursInTheFuture = 3.Hours().Since(DateTime.Now);
+
+//String manipulation
+string test = "My Test String";
+string first = test.First(); //"M"
+string firstThree = test.First(3); //"My "
+string last = test.Last(); //"g"
+string LastThree = test.Last(3); //"ing"</pre>

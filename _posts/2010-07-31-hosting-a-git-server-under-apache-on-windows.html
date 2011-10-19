@@ -1,0 +1,139 @@
+---
+layout: post
+title: "Hosting a Git server under Apache on Windows"
+category: git
+postId: 564
+---
+<p>Last month I posted about <a href="http://www.jeremyskinner.co.uk/2010/06/25/hosting-a-git-server-under-iis7-on-windows/">hosting a git server under IIS</a> by using <a href="http://github.com/jeremyskinner/git-dot-aspx">GitAspx</a>. While this is certainly one way to host a git server on windows, I wouldn’t recommend this in a production environment. </p>  <p>An alternative (and somewhat more stable) approach is to use the native implementation of git-http-backend that ships with <a href="http://code.google.com/p/msysgit">msysgit</a> along with Apache. </p>  <h3>Step 1: Install Git</h3>  <p>Firstly you’ll need to install <a href="http://code.google.com/p/msysgit">msysgit</a>. The current stable version is 1.7.0.2, but this process should also work with the 1.7.1 beta. Be sure to select <strong>Run git from the Windows Command prompt</strong> when the installer asks you if you want to modify your PATH variable.</p>  <p>Once installed, you’ll need to tweak the installation slightly. By default, the git http server is located at C<strong>:Program Files (x86)Gitlibexecgit-coregit-http-backend.exe </strong>(on x64 systems). If you try and run git-http-backend.exe you’ll get the message that the application couldn’t be started because libiconv2.dll is missing:</p>  <p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image6.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" class="wlDisabledImage" title="image" border="0" alt="image" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image_thumb6.png" width="419" height="148" /></a></p>  <p>In order to fix this, copy libiconv2.dll from <strong>C:Program Files (x86)Gitbin</strong> to <strong>C:Program Files (x86)Gitlibexecgit-core</strong></p>  <p>Now when you run git-http-backend.exe from a command prompt, the application should run and you should see an HTTP 500 server error:</p>  <p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image7.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" class="wlDisabledImage" title="image" border="0" alt="image" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image_thumb7.png" width="670" height="172" /></a></p>  <h3><strong>Step 2: Install Apache</strong></h3>  <p><strong></strong>Next you’ll need to install the Apache webserver. I’m using the 2.2.16 installer <a href="http://apache.mirror.anlx.net/httpd/binaries/win32/httpd-2.2.16-win32-x86-no_ssl.msi">which can be found here</a>. I ran through the installation using the default options so my Apache instance is running on port 80. </p>  <p>If you visit http://localhost at this point you should be greeted with Apache’s standard “It works!” message.</p>  <h3>Step 3: Create Repositories Directory</h3>  <p>Create the directory where you want to store your git repositores. I’m using <strong>C:Repositories. </strong>For testing purposes I created an empty test repository:</p>  <p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image8.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" class="wlDisabledImage" title="image" border="0" alt="image" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image_thumb8.png" width="531" height="173" /></a></p>  <p>You’ll also need to put some content in this test repositor    <br /></p>  <h3></h3>  <h3>Step 4: Modify Apache Configuration</h3>  <p>Next, you’ll need to modify the Apache configuration file so that it forwards requests to git-http-backend.exe. This is done by editing <strong>httpd.conf</strong> in <strong>C:Program Files (x86)Apache Software FoundationApache2.2conf</strong></p>  <p>At the bottom of httpd.conf, add the following lines:</p>  <pre>SetEnv GIT_PROJECT_ROOT C:/Repositories
+SetEnv GIT_HTTP_EXPORT_ALL
+ScriptAliasMatch 
+        &quot;(?x)^/(.*/(HEAD | 
+                        info/refs | 
+                        objects/(info/[^/]+ | 
+                                 [0-9a-f]{2}/[0-9a-f]{38} | 
+                                 pack/pack-[0-9a-f]{40}.(pack|idx)) | 
+                        git-(upload|receive)-pack))$&quot; 
+                        &quot;C:/Program Files (x86)/git/libexec/git-core/git-http-backend.exe/$1&quot;</pre>
+
+<p>The first line tells git where your repositories are located. The second line tells git that all repositories in this directory should be published over http (by default, git will only publish those repositories that contain a file named “git-daemon-export-ok”). The final lines tell apache to route git-specific URLs to the git http server.</p>
+
+<p>Finally, if you want to be able to clone from the server without authentication, then you’ll need to tell Apache to allow anonymous access by adding the following lines into httpd.conf:</p>
+
+<pre>&lt;Directory /&gt;
+  Allow from all
+&lt;/Directory&gt;</pre>
+
+<p>After saving the changes, restart the Apache service.</p>
+
+<h3>Step 5: Clone the test repository</h3>
+Next, clone the test repository that you crated in step 3 by issuing the command<strong> git clone http://localhost/Test.git</strong> 
+
+<p>If all goes well, you should see the following output:</p>
+
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image9.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" class="wlDisabledImage" title="image" border="0" alt="image" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image_thumb9.png" width="512" height="131" /></a></p>
+
+<p>At this point, you can now clone repositories from the server without any authentication.</p>
+
+<h3>Step 6: Authentication</h3>
+
+<p>If you try to push changes to the repository you cloned in step 5, you’ll receive an error:</p>
+
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image10.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" class="wlDisabledImage" title="image" border="0" alt="image" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image_thumb10.png" width="668" height="282" /></a></p>
+
+<br />
+
+<p>This is because by default, you can only pull from repositories anonymously, while pushing requires authentication to be enabled. </p>
+
+<h4>Scenario 1: Allow anonymous pushes</h4>
+
+<p>Sometimes you may want to allow users to push to your repositories without authentication, for example when using an internal, privately hosted server. </p>
+
+<p>To enable this scenario, edit the <strong>config </strong>file in C:RepositoriesTest.git on the server and add the following lines to the bottom of the file:</p>
+
+<pre>[http]
+  receivepack = true</pre>
+
+<p>This will allow git to accept pushes from anonymous users. </p>
+
+<p>Note that you’ll have to add this to every repository that you create. I’ll show a nicer way to do this later in the tutorial.</p>
+
+<h4>Scenario 2: Anonymous pull, authenticated push</h4>
+
+<p>This is the default scenario. Git will only allow users to push if they have been authenticated with apache. </p>
+
+<p>There are several ways to enable user accounts with apache. The most basic is to use .htaccess files, although you can also configure integration with Windows user accounts and Active Directory by using mod_authnz_ldap. Configuring these is outside the scope for this tutorial, but there are plenty of examples on the internets. </p>
+
+<p>Once authentication is set up, you’ll need to ensure that you clone your repositories with the username in the URL, as git will not prompt you for a username by default:</p>
+
+<p><strong>git clone http://MyUserName@mygitserver/Test.git</strong></p>
+
+<p>Git will then prompt you for a password every time that you try to push. You can also hard code the password in the URL (somewhat insecure) if you want to avoid this prompt:</p>
+
+<p><strong>git clone http://MyUserName:Password@mygitserver/Test.git</strong></p>
+
+<p>To make this more secure, you could enable SSL on the server and require authenticated traffic to go over HTTPS. Although configuring OpenSSL with apache is outside the scope for this tutorial, I will point out that once configured, you will need to disable the SSL verification on your git client by running:</p>
+
+<p><strong>git config --global http.sslverify false</strong></p>
+
+<p>If you don’t do this, you’ll get an error saying <strong>“error setting certificate verify locations”</strong> every time you try to clone/push/pull over HTTPS.</p>
+
+<h3>Step 7: A prettier UI</h3>
+
+<p>At this point, you should be able to clone, pull from and push to the server. However, creating new repositories requires that you connect remotely to the server and run git init from a command prompt on the server. </p>
+
+<p>A nicer alternative is to use a web-based front for the creation of repositories. For this I’ll be using <a href="http://github.com/JeremySkinner/GitPhpHomepage">GitPhpHomepage</a> which is a small collection of PHP scripts that I ported from <a href="http://github.com/JeremySkinner/git-dot-aspx">GitAspx's</a> ASP.NET-based UI to PHP in order to get it working under Apache.</p>
+
+<p>First, you’ll need to install PHP on the server. I’ll be using the PHP 5.3.3 Windows binaries that can be found at <a href="http://windows.php.net/download/">http://windows.php.net/download/</a>. The download page is somewhat confusing, offering both thread-safe and non-thread-safe versions compiled with both VC6 and VC9. For use with Apache 2.2 be sure to select the <strong>VC6 x86 Thread Safe zip package</strong>. Here’s <a href="http://windows.php.net/downloads/releases/php-5.3.3-Win32-VC6-x86.zip">a direct link</a>.</p>
+
+<p>Unzip the contents of this package to <strong>C:PHP</strong> on the server and add this directory to Windows’ PATH environment variable:</p>
+
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image11.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" class="wlDisabledImage" title="image" border="0" alt="image" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image_thumb11.png" width="413" height="475" /></a></p>
+
+<p>Next, rename the php.ini-production file to just php.ini and edit the following settings:</p>
+
+<p>Uncomment and edit the “extension_dir” (about half way through the file) so that it says the following:</p>
+
+<pre>extension_dir = &quot;c:phpext&quot;</pre>
+
+<p>Next, edit your Apache configuration file (C:Program Files (x86)Apache Software FoundationApache2.2confhttpd.conf) and add the following lines to the bottom of the file:</p>
+
+<pre>AddType application/x-httpd-php .php
+LoadModule php5_module &quot;C:/php/php5apache2_2.dll&quot;
+PHPIniDir &quot;C:/php&quot;</pre>
+
+<p>This tells Apache to map .php file extensions to the PHP5 apache module located in C:php.</p>
+
+<p>You’ll also need to tell Apache to look for index.php as a default index file. This can be done by searching for the lines that look like this:</p>
+
+<pre>&lt;IfModule dir_module&gt;&#160;&#160;&#160;&#160;
+  DirectoryIndex index.html
+&lt;/IfModule&gt;</pre>
+
+<p>…and changing them to this:</p>
+
+<pre>&lt;IfModule dir_module&gt;&#160;&#160;&#160;&#160;
+  DirectoryIndex index.php index.html
+&lt;/IfModule&gt;</pre>
+
+<p>Be sure to restart the Apache server once you’ve made these changes.</p>
+
+<p>To see whether this is working, create a file called phpinfo.php in C:Program Files (x86)Apache Software FoundationApache2.2htdocs and place in it the following content:</p>
+
+<pre>&lt;?php phpinfo(); ?&gt;</pre>
+
+<p>Now, visiting http://mygitserver/phpinfo.php should display a page containing PHP configuration information.</p>
+
+<p>Now that PHP is configured, download the GitPhpHomepage files from <a href="http://github.com/JeremySkinner/GitPhpHomepage">http://github.com/JeremySkinner/GitPhpHomepage</a> and unzip them into C:Program Files (x86)Apache Software FoundationApache2.2htdocs </p>
+
+<p>Be sure to edit the config.php file so that it accurately reflects both the git installation directory and your repositories directory. </p>
+
+<p>At this point, visiting http://mygitserver should display a page where you can view and create repositories:</p>
+
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image12.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" class="wlDisabledImage" title="image" border="0" alt="image" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image_thumb12.png" width="644" height="358" /></a></p>
+
+<p>Pressing the “Create a new bare repository” button will open a dialog where you can create a new repository, including the option to enable anonymous pushes:</p>
+
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image13.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" class="wlDisabledImage" title="image" border="0" alt="image" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/07/image_thumb13.png" width="656" height="189" /></a></p>
+
+<br />Obviously, if you’re thinking of using this on a public-facing server you should enable authentication so that not just anyone can create repositories on your server. 
+

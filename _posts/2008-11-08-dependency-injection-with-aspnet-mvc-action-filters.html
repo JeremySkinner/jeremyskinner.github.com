@@ -1,0 +1,190 @@
+---
+layout: post
+title: "Dependency Injection with ASP.NET MVC Action Filters"
+category: .NET
+postId: 52
+---
+<p>Action Filter attributes in ASP.NET MVC are a very nice way of encapsulating logic into small reusable components that can easily be reused across multiple controllers.</p>
+
+<p>However, if you need your action filters to do anything complex, injecting services into action filters using an <a href="http://martinfowler.com/articles/injection.html">Inversion of Control container</a> (such as <a href="http://castleproject.org/container/index.html">Windsor</a> or <a href="http://structuremap.sourceforge.net/Default.htm">StructureMap</a>) can be painful. </p>
+
+<p>Typically, when using an IoC container it is necessary to register all your components with the container up-front and then use the container to create instances for you. When the container creates the object, it will also create any required dependencies and pass them to the constructor (or property setters).</p> 
+
+<p>However, as ActionFilters are defined as attributes, they cannot be instantiated by the container. One solution to this problem is to wrap the container with a static class and then make use of constructor chaining to create the illusion of automatic dependency resolution:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> LoggingFilter <span style="color: #008000;">:</span> ActionFilterAttribute <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">private</span> ILogger logger<span style="color: #008000;">;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> LoggingFilter<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #008000;">:</span> <span style="color: #0600FF;">this</span><span style="color: #000000;">&#40;</span>IoC.<span style="color: #0000FF;">Resolve</span><span style="color: #008000;">&lt;</span>ILogger<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> LoggingFilter<span style="color: #000000;">&#40;</span>ILogger logger<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">logger</span> <span style="color: #008000;">=</span> logger<span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> <span style="color: #0600FF;">void</span> OnActionExecuting<span style="color: #000000;">&#40;</span>ActionExecutingContext context<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    logger.<span style="color: #0000FF;">log</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Entering action: &quot;</span> <span style="color: #008000;">+</span> context.<span style="color: #0000FF;">RouteData</span>.<span style="color: #0000FF;">GetRequiredString</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;action&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>In this example, the default constructor will call into a static 'IoC' class (which wraps the underlying container) to resolve an ILogger instance and then pass this to the second constructor. In a unit-testing scenario, you can make use of the second constructor directly in order to supply a mocked ILogger instance.</p>
+
+<p>There are several things I don't like about this code:</p>
+<ol>
+<li>The filter now has a coupling to the container</li>
+<li>If you trigger the instantiation of the attribute without first initialising the container then this can lead to problems (eg reflecting over a method's attributes in a unit-testing scenario)</li>
+<li>It's just plain ugly!</li>
+</ol>
+
+<p>Thankfully, there is a better way. Several IoC containers (including <a href="http://code.google.com/p/autofac">Autofac</a> and <a href="http://codeplex.com/unity">Unity</a>) can inject services into objects using property setters <strong>without the target object needing to be registered with the container.</strong> I'll be using Autofac for the sample code.</p>
+
+<p>
+We can write a custom ControllerActionInvoker to make use of this feature by intercepting the action filters before they are invoked. The custom action invoker looks like this: 
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">namespace</span> MyApp <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">using</span> <span style="color: #008080;">System</span><span style="color: #008000;">;</span>
+  <span style="color: #0600FF;">using</span> <span style="color: #008080;">System.Collections.Generic</span><span style="color: #008000;">;</span>
+  <span style="color: #0600FF;">using</span> <span style="color: #008080;">System.Reflection</span><span style="color: #008000;">;</span>
+  <span style="color: #0600FF;">using</span> <span style="color: #008080;">System.Web.Mvc</span><span style="color: #008000;">;</span>
+  <span style="color: #0600FF;">using</span> <span style="color: #008080;">Autofac</span><span style="color: #008000;">;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> MyActionInvoker <span style="color: #008000;">:</span> ControllerActionInvoker <span style="color: #000000;">&#123;</span>
+    <span style="color: #0600FF;">private</span> <span style="color: #0600FF;">readonly</span> IContainer container<span style="color: #008000;">;</span>
+&nbsp;
+    <span style="color: #0600FF;">public</span> MyActionInvoker<span style="color: #000000;">&#40;</span>IContainer container<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      <span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">container</span> <span style="color: #008000;">=</span> container<span style="color: #008000;">;</span>
+    <span style="color: #000000;">&#125;</span>
+&nbsp;
+    <span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">override</span> ActionExecutedContext InvokeActionMethodWithFilters<span style="color: #000000;">&#40;</span>MethodInfo methodInfo, IDictionary<span style="color: #008000;">&lt;</span><span style="color: #FF0000;">string</span>, <span style="color: #FF0000;">object</span><span style="color: #008000;">&gt;</span> parameters, IList<span style="color: #008000;">&lt;</span>IActionFilter<span style="color: #008000;">&gt;</span> filters<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      <span style="color: #0600FF;">foreach</span> <span style="color: #000000;">&#40;</span>var filter <span style="color: #0600FF;">in</span> filters<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+        container.<span style="color: #0000FF;">InjectProperties</span><span style="color: #000000;">&#40;</span>filter<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+      <span style="color: #000000;">&#125;</span>
+      <span style="color: #0600FF;">return</span> <span style="color: #0600FF;">base</span>.<span style="color: #0000FF;">InvokeActionMethodWithFilters</span><span style="color: #000000;">&#40;</span>methodInfo, parameters, filters<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    <span style="color: #000000;">&#125;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+The custom action invoker takes an instance of IContainer (the autofac container) in its constructor, which it can then use to inject services into the action filter attributes before they are invoked. This is done by overriding the <strong>InvokeActionMethodWithFilters</strong> method and calling <strong>container.InjectProperties</strong> for each object in the filters collection.</p>
+
+<p>
+In order to get Autofac working with ASP.NET MVC, you need to register an HTTP module as well as set up the AutofacControllerFactory (<a href="http://code.google.com/p/autofac/wiki/MvcIntegration">instructions here</a>.)
+</p>
+
+<p>
+It is also necessary to register the custom action invoker with Autofac in your global.asax:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">var builder <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> ContainerBuilder<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+builder.<span style="color: #0000FF;">Register</span><span style="color: #008000;">&lt;</span>MyActionInvoker<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0600FF;">As</span><span style="color: #008000;">&lt;</span>IActionInvoker<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">FactoryScoped</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+
+<p>
+As well as the ActionInvoker, you also need to register your controllers. Autofac contains a 'module' for doing this (the <a href="http://autofac.googlecode.com/svn/trunk/src/Source/Autofac.Integration.Web.Mvc/AutofacControllerModule.cs">AutofacControllerModule</a>), but we need to make a slight modification in order to use our custom action invoker. The modified module looks like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> ControllerModule <span style="color: #008000;">:</span> Module <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">private</span> <span style="color: #0600FF;">readonly</span> Assembly assembly<span style="color: #008000;">;</span>
+  <span style="color: #0600FF;">private</span> <span style="color: #0600FF;">readonly</span> IControllerIdentificationStrategy controllerNamingStrategy <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> DefaultControllerIdentificationStrategy<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> ControllerModule<span style="color: #000000;">&#40;</span>Assembly assembly<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">assembly</span> <span style="color: #008000;">=</span> assembly<span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">override</span> <span style="color: #0600FF;">void</span> Load<span style="color: #000000;">&#40;</span>ContainerBuilder builder<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    var controllers <span style="color: #008000;">=</span> from type <span style="color: #0600FF;">in</span> assembly.<span style="color: #0000FF;">GetExportedTypes</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+                           where <span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>IController<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">IsAssignableFrom</span><span style="color: #000000;">&#40;</span>type<span style="color: #000000;">&#41;</span> 
+			   where <span style="color: #008000;">!</span>type.<span style="color: #0000FF;">IsAbstract</span>
+		           select type<span style="color: #008000;">;</span>
+&nbsp;
+    <span style="color: #0600FF;">foreach</span> <span style="color: #000000;">&#40;</span>var type <span style="color: #0600FF;">in</span> controllers<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      builder.<span style="color: #0000FF;">Register</span><span style="color: #000000;">&#40;</span>type<span style="color: #000000;">&#41;</span>
+        .<span style="color: #0000FF;">FactoryScoped</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+        .<span style="color: #0600FF;">As</span><span style="color: #000000;">&#40;</span>controllerNamingStrategy.<span style="color: #0000FF;">ServiceForControllerType</span><span style="color: #000000;">&#40;</span>type<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>
+        .<span style="color: #0600FF;">As</span><span style="color: #000000;">&#40;</span>type<span style="color: #000000;">&#41;</span>
+        .<span style="color: #0000FF;">OnActivating</span><span style="color: #000000;">&#40;</span>InjectInvoker<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    <span style="color: #000000;">&#125;</span>
+  <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #0600FF;">private</span> <span style="color: #0600FF;">void</span> InjectInvoker<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">object</span> sender, ActivatingEventArgs e<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #000000;">&#40;</span><span style="color: #000000;">&#40;</span>Controller<span style="color: #000000;">&#41;</span>e.<span style="color: #0000FF;">Instance</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">ActionInvoker</span> <span style="color: #008000;">=</span> e.<span style="color: #0000FF;">Context</span>.<span style="color: #0000FF;">Resolve</span><span style="color: #008000;">&lt;</span>IActionInvoker<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+Now when a controller is instantiated, the ActionInvoker property will be set to an instance of our custom action invoker. The module should be registered with the container builder:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">builder.<span style="color: #0000FF;">RegisterModule</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> ControllerModule<span style="color: #000000;">&#40;</span><span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>HomeController<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Assembly</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+
+<p>So, assuming an ILogger instance is registered with the container, the sample LoggingFilter could be written like this:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> LoggingFilter <span style="color: #008000;">:</span> ActionFilterAttribute <span style="color: #000000;">&#123;</span>
+   <span style="color: #0600FF;">public</span> ILogger Logger <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> <span style="color: #0600FF;">void</span> OnActionExecuting<span style="color: #000000;">&#40;</span>ActionExecutingContext context<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    Logger.<span style="color: #0000FF;">log</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Entering action: &quot;</span> <span style="color: #008000;">+</span> context.<span style="color: #0000FF;">RouteData</span>.<span style="color: #0000FF;">GetRequiredString</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;action&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>Much better!</p>
+
+<p>
+The same approach can also be used for other filter types, (such as AuthorizationFilters) by overriding the appropriate method.
+</p>
+
+<p>Note that container.InjectProperties makes use of reflection, so there is a potetial performance issue here.</p>
+
+<p>
+<strong>Edit (5 December 2008):</strong> Here is an extension method that adds the InjectProperties method to the Microkernel from Castle Windsor. 
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">using</span> <span style="color: #008080;">System</span><span style="color: #008000;">;</span>
+<span style="color: #0600FF;">using</span> <span style="color: #008080;">System.Reflection</span><span style="color: #008000;">;</span>
+<span style="color: #0600FF;">using</span> <span style="color: #008080;">Castle.MicroKernel</span><span style="color: #008000;">;</span>
+<span style="color: #0600FF;">using</span> <span style="color: #008080;">Castle.MicroKernel.ComponentActivator</span><span style="color: #008000;">;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #FF0000;">class</span> WindsorExtension <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #0600FF;">void</span> InjectProperties<span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> IKernel kernel, <span style="color: #FF0000;">object</span> target<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var type <span style="color: #008000;">=</span> target.<span style="color: #0000FF;">GetType</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">foreach</span><span style="color: #000000;">&#40;</span>var property <span style="color: #0600FF;">in</span> type.<span style="color: #0000FF;">GetProperties</span><span style="color: #000000;">&#40;</span>BindingFlags.<span style="color: #0600FF;">Public</span> <span style="color: #008000;">|</span> BindingFlags.<span style="color: #0000FF;">Instance</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span>property.<span style="color: #0000FF;">CanWrite</span> <span style="color: #008000;">&amp;&amp;</span>  kernel.<span style="color: #0000FF;">HasComponent</span><span style="color: #000000;">&#40;</span>property.<span style="color: #0000FF;">PropertyType</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+				var value <span style="color: #008000;">=</span> kernel.<span style="color: #0000FF;">Resolve</span><span style="color: #000000;">&#40;</span>property.<span style="color: #0000FF;">PropertyType</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+				<span style="color: #0600FF;">try</span> <span style="color: #000000;">&#123;</span>
+					property.<span style="color: #0000FF;">SetValue</span><span style="color: #000000;">&#40;</span>target, value, <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+				<span style="color: #000000;">&#125;</span>
+				<span style="color: #0600FF;">catch</span><span style="color: #000000;">&#40;</span>Exception ex<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+					var message <span style="color: #008000;">=</span> <span style="color: #FF0000;">string</span>.<span style="color: #0000FF;">Format</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Error setting property {0} on type {1}, See inner exception for more information.&quot;</span>, property.<span style="color: #0000FF;">Name</span>, type.<span style="color: #0000FF;">FullName</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+					<span style="color: #0600FF;">throw</span> <span style="color: #008000;">new</span> ComponentActivatorException<span style="color: #000000;">&#40;</span>message, ex<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+				<span style="color: #000000;">&#125;</span>
+			<span style="color: #000000;">&#125;</span>
+		<span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+

@@ -1,0 +1,98 @@
+---
+layout: post
+title: "Phantom 0.2 Released"
+category: .NET
+postId: 267
+---
+<p>
+<a href="http://github.com/JeremySkinner/Phantom">Phantom</a> 0.2 is now <a href="http://http://cloud.github.com/downloads/JeremySkinner/Phantom/Phantom-0.2.zip">available to download</a>. A big thanks goes to <a href="http://blog.ashmind.com/">Andrey Shchekin</a> for this release who contributed the NAnt integration and the Runnable syntax.
+</p>
+<p>
+For those not familiar with Phantom, this is a build system written in C# and Boo.
+</p>
+
+<ul>
+<li><a href="http://github.com/JeremySkinner/Phantom/downloads">Binaries</a></li>
+<li><a href="http://wiki.github.com/JeremySkinner/Phantom">Documentation</a></li>
+<li><a href="http://github.com/JeremySkinner/Phantom">Source</a></li>
+</ul>
+
+<p>This release includes:</p>
+
+<h2>NAnt Integration</h2>
+
+<p>You can now execute NAnt tasks from within Phantom build scripts. In order for this to work, you'll need to drop Phantom.Integration.Nant.dll and NAnt.Core.dll into the same directory as Phantom.exe. Once in place, you can import the NAnt tasks. This example executes the 'echo' task which is part of NAnt.Core.dll:</p>
+
+
+<div class="syntax"><div class="code"><pre class="python" style="font-family:monospace;"><span style="color: #ff7700;font-weight:bold;">import</span> tasks <span style="color: #ff7700;font-weight:bold;">from</span> NAnt.<span style="color: black;">Core</span>
+target default:
+   echo<span style="color: black;">&#40;</span>message : <span style="color: #483d8b;">&quot;Hello from NAnt!&quot;</span><span style="color: black;">&#41;</span></pre></div></div>
+
+
+
+
+<h2>Runnables</h2>
+
+<p>With v0.1 of Phantom, a lot of options were passed to helper methods via Hashes. For example, if you wanted tell msbuild to compile a project with a particular configuration and verbosity, you'd have to do the following:</p>
+
+
+<div class="syntax"><div class="code"><pre class="python" style="font-family:monospace;">msbuild<span style="color: black;">&#40;</span><span style="color: #483d8b;">&quot;foo.sln&quot;</span>, <span style="color: black;">&#123;</span> <span style="color: #483d8b;">&quot;configuration&quot;</span>: <span style="color: #483d8b;">&quot;release&quot;</span>, <span style="color: #483d8b;">&quot;verbosity&quot;</span>: <span style="color: #483d8b;">&quot;normal&quot;</span> <span style="color: black;">&#125;</span><span style="color: black;">&#41;</span></pre></div></div>
+
+
+
+
+<p>
+With Phantom 0.2, most of these methods have been converted to classes that define regular properties. You can use Boo's object initializer syntax they can still be declared on one line:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="python" style="font-family:monospace;">msbuild<span style="color: black;">&#40;</span><span style="color: #008000;">file</span>: <span style="color: #483d8b;">&quot;foo.sln&quot;</span>, configuration: <span style="color: #483d8b;">&quot;release&quot;</span>, verbosity: <span style="color: #483d8b;">&quot;normal&quot;</span><span style="color: black;">&#41;</span></pre></div></div>
+
+
+
+
+<p>
+This is called a 'runnable' as the msbuild class implements the IRunnable interface. When Phantom sees an instance of an IRunnable type being created, it will automatically call the 'Run' method (in this case, to kick off MSbuild). This syntax is equivalent to the following:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="python" style="font-family:monospace;">m = msbuild<span style="color: black;">&#40;</span><span style="color: black;">&#41;</span>
+m.<span style="color: #008000;">file</span> = <span style="color: #483d8b;">&quot;foo.sln&quot;</span>
+m.<span style="color: black;">configuration</span> = <span style="color: #483d8b;">&quot;release&quot;</span>
+m.<span style="color: black;">verbosity</span> = <span style="color: #483d8b;">&quot;normal&quot;</span>
+m.<span style="color: black;">Run</span><span style="color: black;">&#40;</span><span style="color: black;">&#41;</span></pre></div></div>
+
+
+
+
+<p>Runnables can also be used inside a <a href="http://wiki.github.com/JeremySkinner/Phantom/with-syntax">with block</a>:</p>
+
+
+<div class="syntax"><div class="code"><pre class="python" style="font-family:monospace;"><span style="color: #ff7700;font-weight:bold;">with</span> msbuild<span style="color: black;">&#40;</span><span style="color: black;">&#41;</span>:
+  .<span style="color: #008000;">file</span> = <span style="color: #483d8b;">&quot;foo.sln&quot;</span>
+  .<span style="color: black;">verbosity</span> = <span style="color: #483d8b;">&quot;normal&quot;</span>
+  .<span style="color: black;">configuration</span> = <span style="color: #483d8b;">&quot;release&quot;</span></pre></div></div>
+
+
+
+
+<p>...and the 'Run' method will automatically be called at the end of the block. This is particularly useful if you have lots of properties that you want to set that cannot all fit on one line.</p>
+
+<h2>Improved FileList support</h2>
+<p>
+The 0.1 version of <a href="http://wiki.github.com/JeremySkinner/Phantom/file-lists">FileLists</a> were rather limited. With 0.2 they now support exclusion patterns as well as recursively copying subdirectories:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="python" style="font-family:monospace;"><span style="color: #ff7700;font-weight:bold;">with</span> FileList<span style="color: black;">&#40;</span><span style="color: #483d8b;">&quot;path/to/bin/debug&quot;</span><span style="color: black;">&#41;</span>:
+  .<span style="color: black;">Include</span><span style="color: black;">&#40;</span><span style="color: #483d8b;">&quot;**/*&quot;</span><span style="color: black;">&#41;</span>
+  .<span style="color: black;">ForEach</span> <span style="color: #ff7700;font-weight:bold;">def</span><span style="color: black;">&#40;</span><span style="color: #008000;">file</span><span style="color: black;">&#41;</span>:
+    <span style="color: #008000;">file</span>.<span style="color: black;">CopyToDirectory</span><span style="color: black;">&#40;</span><span style="color: #483d8b;">&quot;directoryToPackage&quot;</span><span style="color: black;">&#41;</span></pre></div></div>
+
+
+
+
+<h2>NCover Integration</h2>
+<p>
+Phantom 0.2 now includes runnables for executing <a href="http://www.ncover.com">NCover</a> and NCoverExplorer. At present, these only work with the free Community Edition of NCover.
+</p>

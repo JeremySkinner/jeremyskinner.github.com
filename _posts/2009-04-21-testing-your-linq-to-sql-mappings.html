@@ -1,0 +1,27 @@
+---
+layout: post
+title: "Testing your Linq to Sql Mappings"
+category: .NET
+postId: 130
+---
+<p>Here's a quick way to verify that all of your Linq to Sql entities are mapped to their tables correctly:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">namespace</span> DbTests <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">using</span> <span style="color: #008080;">System.Linq</span><span style="color: #008000;">;</span>
+  <span style="color: #0600FF;">using</span> <span style="color: #008080;">NUnit.Framework</span><span style="color: #008000;">;</span>
+&nbsp;
+  <span style="color: #000000;">&#91;</span>TestFixture<span style="color: #000000;">&#93;</span>
+  <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> MappingTester <span style="color: #000000;">&#123;</span>
+    <span style="color: #000000;">&#91;</span>Test<span style="color: #000000;">&#93;</span>
+    <span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> Verify_Mappings<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+      <span style="color: #0600FF;">using</span> <span style="color: #000000;">&#40;</span>var context <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> MyDataContext<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+        <span style="color: #0600FF;">foreach</span><span style="color: #000000;">&#40;</span>var mappedTable <span style="color: #0600FF;">in</span> context.<span style="color: #0000FF;">Mapping</span>.<span style="color: #0000FF;">GetTables</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Select</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">RowType</span>.<span style="color: #0000FF;">Type</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+          context.<span style="color: #0000FF;">GetTable</span><span style="color: #000000;">&#40;</span>mappedTable<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Cast</span><span style="color: #008000;">&lt;</span><span style="color: #FF0000;">object</span><span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Take</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">0</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">ToList</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+        <span style="color: #000000;">&#125;</span>
+      <span style="color: #000000;">&#125;</span>
+    <span style="color: #000000;">&#125;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+

@@ -1,0 +1,91 @@
+---
+layout: post
+title: "Introducing the Smart Grid for ASP.NET MVC"
+category: .NET
+postId: 28
+---
+<p>
+<strong>Edit:</strong> Some documentation for the Grid is now available at the <a href="http://www.codeplex.com/MVCContrib/Wiki/View.aspx?title=Grid">MvcContrib Wiki</a>.
+</p>
+
+<p>I've recently been working on an equivalent of the ASP.NET GridView for use with ASP.NET MVC. </p>
+
+<p>
+This is partially inspired by the <a href="http://using.castleproject.org/display/Contrib/Smart+Grid+Component">SmartGrid component</a> which is part of the Castle Contrib project, but uses lambdas in order to build up a set of columns that can be automatically turned into an HTML table. For example, I might have this in an ASP.NET MVC Controller:
+</p>
+
+<pre>
+public class HomeController {
+	private UserRepository repository = new UserRepository();
+
+	public ActionResult Index() {
+		ViewData["users"] = repository.FindAll();
+		return RenderView();
+	}
+}
+</pre>
+
+<p>
+Then in my View I could have this:
+</p>
+
+<pre>
+&lt;%
+Html.Grid&lt;Person&gt;(
+	"people",
+	column =&gt; {
+		column.For(p =&gt; p.Id);
+		column.For(p =&gt; p.Name);
+		column.For(p =&gt; p.Gender);
+		column.For(p =&gt; p.RoleId);
+	}
+);
+%&gt;
+</pre>
+
+<p>
+Which would create something like this:
+</p>
+
+<img src="http://blog.jeremyskinner.co.uk/wp-content/uploads/2008/05/grid1.gif" alt="grid1" />
+
+<p>
+Note how the column names are automatically generated from the lambda expressions. However, you can override a column heading:
+</p>
+<pre>
+column.For(p =&gt; p.Id, "ID Number");
+</pre>
+
+<p>
+You can also create custom columns using lambda statements...
+</p>
+<pre>
+column.For("Custom Column").Do(p =&gt; { %&gt;
+	&lt;td&gt;A custom column...&lt;/td&gt;
+&lt;% });
+</pre>
+
+<p>...and columns can have formatting applied to them:</p>
+
+<pre>
+column.For(p =&gt; p.DateOfBirth).Formatted("{0:d}");
+</pre>
+
+<p>
+Pagination is also fully supported by using the AsPagination extension method which works on any IEnumerable&lt;T&gt; or IQueryable&lt;T&gt;
+</p>
+
+<pre>
+public ActionResult Index(int? page) {
+	ViewData["users"] = repository.FindAll().AsPagination(page ?? 1);
+	return RenderView();
+}
+</pre>
+
+<p>
+Which would produce something like this:
+</p>
+
+<img src="http://blog.jeremyskinner.co.uk/wp-content/uploads/2008/05/grid2.gif" alt="grid2" />
+
+<p>The source code is available in the <a href="http://mvccontrib.org">mvccontrib</a> trunk.</p>

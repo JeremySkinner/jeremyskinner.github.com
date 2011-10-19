@@ -1,0 +1,39 @@
+---
+layout: post
+title: "FluentValidation v3: ASP.NET MVC validation interceptors"
+category: FluentValidation
+postId: 638
+---
+<p>This is part 3 in a series about new features in FluentValidation v3.</p>    <ul>   <li><a href="http://www.jeremyskinner.co.uk/2011/02/03/fluentvalidation-v3-rulesets/">Part 1 – RuleSets</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/02/04/fluentvalidation-v3-customizevalidatorattribute/">Part 2 – CustomizeValidatorAttribute</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/04/28/fluentvalidation-v3-asp-net-mvc-validation-interceptors/">Part 3 – ASP.NET MVC validation interceptors</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/04/29/fluentvalidation-v3-better-handling-of-nullable-types/">Part 4 – Better handling of Nullable Types</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/06/17/fluentvalidation-v3-conditional-validation-of-collection-elements/">Part 5 – Conditional validation of collection elements</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/06/25/fluentvalidation-v3-other-features/">Part 6 – Other Features</a> </li> </ul>  <p>Since ASP.NET MVC 2 was released last year, FluentValidation has had the ability to plug into the MVC validation pipeline <a href="http://fluentvalidation.codeplex.com/wikipage?title=mvc&amp;referringTitle=Documentation">using a custom ModelValidatorProvider</a>. However, one of the downsides of using this automatic integration is that you can’t customize the validator as easily – it is executed as part of MVC’s model-binding process which happens before your controller action is invoked.</p>  <p>One of the new features of FluentValidation v3 is the ability to intercept the automatic MVC integration in order to customise the validation process. To support this, FluentValidation 3 has a new interface – IValidatorInterceptor:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:2d9474e6-2cf0-4dbb-a77d-102f9ebad83c" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">interface</span> IValidatorInterceptor <span style="color: #000000;">&#123;</span>
+    ValidationContext BeforeMvcValidation<span style="color: #000000;">&#40;</span>ControllerContext controllerContext, ValidationContext validationContext<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+    ValidationResult AfterMvcValidation<span style="color: #000000;">&#40;</span>ControllerContext controllerContext, ValidationContext validationContext, ValidationResult result<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>This interface has two methods – BeforeMvcValidation and AfterMvcValidation. If you implement this interface in your validator classes then these methods will be called as appropriate during the MVC validation pipeline.</p>
+
+<p>BeforeMvcValidation is invoked after the appropriate validator has been selected but before it is invoked. One of the arguments passed to this method is a ValidationContext that will eventually be passed to the validator. The context has several properties including a reference to the object being validated. If we want to change which rules are going to be invoked (for example, by using a custom ValidatorSelector) then we can create a new ValidationContext, set its Selector property, and return that from the BeforeMvcValidation method.</p>
+
+<p>Likewise, AfterMvcValidation occurs after validation has occurs. This time, we also have a reference to the result of the validation. Here we can do some additional processing on the error messages before they’re added to modelstate.</p>
+
+<p>As well as implementing this interface directly in a validator class, we can also implement it externally, and specify the interceptor by <a href="http://www.jeremyskinner.co.uk/2011/02/04/fluentvalidation-v3-customizevalidatorattribute/">using a CustomizeValidatorAttribute</a> on an action method parameter:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:6ce102c5-7885-4a54-ad0a-f7a8083d286d" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> ActionResult Save<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#91;</span>CustomizeValidator<span style="color: #000000;">&#40;</span>Interceptor<span style="color: #008000;">=</span><span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>MyCustomerInterceptor<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span> Customer cust<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+ <span style="color: #008080; font-style: italic;">//...</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>In this case, the interceptor has to be a class that implements IValidatorInterceptor and has a public, parameterless constructor. The advantage of this approach is that your validators don’t have to be in an assembly that directly references System.Web.Mvc.</p>
+
+<p>Note that this is considered to be an advanced scenario. Most of the time you probably won’t need to use an interceptor, but the option is there if you want it.</p>

@@ -1,0 +1,66 @@
+---
+layout: post
+title: "Using Mercurial with Subversion"
+category: 
+postId: 523
+---
+<p>If you’re a user of <a href="http://en.wikipedia.org/wiki/Distributed_revision_control">distributed source control</a> systems such as <a href="http://git-scm.com/">Git</a> and <a href="http://mercurial.selenic.com">Mercurial</a> then you may find it painful having to work with subversion (either at work or for an open source project). Recently I started playing with the excellent <a href="http://bitbucket.org/durin42/hgsubversion/wiki/Home">hgsubversion</a> extension which allows you to use mercurial as a subversion client. </p>  <p>Assuming you already have Mercurial installed (or <a href="http://tortoisehg.bitbucket.org/">TortoiseHg</a>) then you can easily grab the hgsubversion extension by grabbing its source <a href="http://bitbucket.org/durin42/hgsubversion/wiki/Home">from bitbucket</a>:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:a8ae8e27-c740-4171-8310-df8fa7034fa3" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="dos" style="font-family:monospace;"><span style="color: #b1b100; font-weight: bold;">cd</span> c:Projects
+hg clone http://bitbucket.org/durin42/hgsubversion</pre></div></div>
+
+
+</div>
+
+<p>Here I’ve simply cloned hgsubversion in to my C:Projects directory. </p>
+
+<p>Next, edit your Mercurial.ini file (in your home directory) and enable both the rebase and svn extensions. Note that rebase is distributed with Mercurial so you don’t need to specify a path:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:98e1d102-7426-4c47-aba2-4b3740d64706" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="ini" style="font-family:monospace;"><span style="color: #000066; font-weight:bold;"><span style="">&#91;</span>extensions<span style="">&#93;</span></span>
+<span style="color: #000099;">rebase</span><span style="color: #000066; font-weight:bold;">=</span>
+<span style="color: #000099;">svn</span><span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;">c:projectshgsubversionhgsubversion</span></pre></div></div>
+
+
+</div>
+
+<p>Now you can clone a subversion repository locally:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:e6477edf-0796-4278-9ec3-ff76ec72e1f8" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="dos" style="font-family:monospace;">hg clone svn+https://path/to/someproject/svn/trunk someproject-hg</pre></div></div>
+
+
+</div>
+
+<p>Here I’m cloning a subversion repository to the local “someproject-hg” directory. Note the svn+https in the URL.</p>
+
+<p>If you want to generate a .hgignore file based on the svn:ignore properties in the remote repository then you can issue the following command:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:4911635a-67c8-48e0-9e57-ec3d16f6ac0e" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="dos" style="font-family:monospace;">hg svn genignore</pre></div></div>
+
+
+</div>
+
+<p>At this point I can interact with someproject-hg as with any other mercurial repository – I can edit files and make local commits. When I’m ready to push the changes back to the subversion server I can issue a “hg push” just as if I were pushing to a remote mercurial repository. </p>
+
+<p>Likewise, if I want to retrieve new changesets from svn then I can issue a “hg pull” as normal. When you pull the changes, this will create a branch in the local repository’s history. At this point, rather than performing a “hg merge” (as you would with a normal mercurial repository) it is necessary to rebase your changes to ensure that you keep a linear history. To perform a rebase, you can issue the command:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:620fee35-21c3-4b62-8c45-d41eecd65aac" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">hg rebase <span style="color: #008000;">--</span>svn</pre></div></div>
+
+
+</div>
+
+<p>If you’re in a situation where you have an existing Subversion repository and you’re not yet willing to fully commit to using a DVCS, hgsubversion is a great way to let committers work with mercurial locally without needing to make any changes to your existing server.</p>
+
+<p>For more information on hgsubversion, be sure to check out the documentation <a href="http://mercurial.selenic.com/wiki/HgSubversion">here</a> and <a href="http://mercurial.aragost.com/kick-start/hgsubversion.html">here</a>.</p>

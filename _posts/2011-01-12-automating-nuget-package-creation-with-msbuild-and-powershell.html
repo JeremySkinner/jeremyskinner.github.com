@@ -1,0 +1,191 @@
+---
+layout: post
+title: "Automating NuGet package creation with MSBuild and PowerShell"
+category: .NET
+postId: 613
+---
+<p>With the upcoming release of NuGet 1.0, I modified the build scripts for <a href="http://fluentvalidation.codeplex.com">FluentValidation</a> to automatically produce NuGet packages as well as provide the ability to automatically publish them to the newly available <a href="http://nuget.org">NuGet Gallery</a>.</p>  <h3></h3>  <h3>Step 1 – Create the NuSpec files</h3>  <p>First, you’ll need to create NuSpec files that describe the package. Mine live in the buildscripts subdirectory of the project’s source control tree. The FluentValidation.nuspec file looks like this:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:4764884d-f946-4d4c-925b-c6510c220034" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #008000;">&lt;?</span>xml version<span style="color: #008000;">=</span><span style="color: #666666;">&quot;1.0&quot;</span><span style="color: #008000;">?&gt;</span>
+<span style="color: #008000;">&lt;</span>package<span style="color: #008000;">&gt;</span>
+  <span style="color: #008000;">&lt;</span>metadata<span style="color: #008000;">&gt;</span>
+    <span style="color: #008000;">&lt;</span>id<span style="color: #008000;">&gt;</span>FluentValidation<span style="color: #008000;">&lt;/</span>id<span style="color: #008000;">&gt;</span>
+    <span style="color: #008000;">&lt;</span>version<span style="color: #008000;">&gt;&lt;/</span>version<span style="color: #008000;">&gt;</span>
+    <span style="color: #008000;">&lt;</span>authors<span style="color: #008000;">&gt;</span>Jeremy Skinner<span style="color: #008000;">&lt;/</span>authors<span style="color: #008000;">&gt;</span>
+    <span style="color: #008000;">&lt;</span>licenseUrl<span style="color: #008000;">&gt;</span>http<span style="color: #008000;">:</span><span style="color: #008080; font-style: italic;">//fluentvalidation.codeplex.com/license&lt;/licenseUrl&gt;</span>
+    <span style="color: #008000;">&lt;</span>projectUrl<span style="color: #008000;">&gt;</span>http<span style="color: #008000;">:</span><span style="color: #008080; font-style: italic;">//fluentvalidation.codeplex.com&lt;/projectUrl&gt;</span>
+    <span style="color: #008000;">&lt;</span>iconUrl<span style="color: #008000;">&gt;</span>http<span style="color: #008000;">:</span><span style="color: #008080; font-style: italic;">//download.codeplex.com/Project/Download/FileDownload.aspx?ProjectName=FluentValidation&amp;amp;DownloadId=166226&lt;/iconUrl&gt;</span>
+    <span style="color: #008000;">&lt;</span>requireLicenseAcceptance<span style="color: #008000;">&gt;</span><span style="color: #0600FF;">false</span><span style="color: #008000;">&lt;/</span>requireLicenseAcceptance<span style="color: #008000;">&gt;</span>
+    <span style="color: #008000;">&lt;</span>description<span style="color: #008000;">&gt;</span>...<span style="color: #0000FF;">description</span> goes here...<span style="color: #008000;">&lt;/</span>description<span style="color: #008000;">&gt;</span>
+    <span style="color: #008000;">&lt;</span>summary<span style="color: #008000;">&gt;</span>...<span style="color: #0000FF;">summary</span> goes here...<span style="color: #008000;">&lt;/</span>summary<span style="color: #008000;">&gt;</span>
+    <span style="color: #008000;">&lt;</span>language<span style="color: #008000;">&gt;</span>en<span style="color: #008000;">-</span>US<span style="color: #008000;">&lt;/</span>language<span style="color: #008000;">&gt;</span>
+  <span style="color: #008000;">&lt;/</span>metadata<span style="color: #008000;">&gt;</span>
+<span style="color: #008000;">&lt;/</span>package<span style="color: #008000;">&gt;</span></pre></div></div>
+
+
+</div>
+
+<p>Note that the version element is empty – this will be replaced by the build script.</p>
+
+<h3>Step 2 – Create the build script</h3>
+
+<p>In this case I’ll be using MSBuild, although the same approach will also work with NAnt, Rake, Psake, Phantom or any other build engine. The build script is called “build.proj” and also lives in the buildscripts subdirectory.</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:1578aec4-569b-45c3-8fe5-b12396adc771" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="xml" style="font-family:monospace;"><span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;Project</span> <span style="color: #000066;">xmlns</span>=<span style="color: #ff0000;">&quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;</span> <span style="color: #000066;">ToolsVersion</span>=<span style="color: #ff0000;">&quot;4.0&quot;</span> <span style="color: #000066;">DefaultTargets</span>=<span style="color: #ff0000;">&quot;default&quot;</span><span style="color: #000000; font-weight: bold;">&gt;</span></span>
+  <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;PropertyGroup<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;BaseDir<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>$(MSBuildProjectDirectory)..<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/BaseDir<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;Configuration</span> <span style="color: #000066;">Condition</span>=<span style="color: #ff0000;">&quot;'$(Configuration)'==''&quot;</span> <span style="color: #000000; font-weight: bold;">&gt;</span></span>Release<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/Configuration<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;BuildDir<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>$(BaseDir)build<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/BuildDir<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;PackageDir<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>$(BuildDir)Packages<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/PackageDir<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;SolutionFile<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>$(BaseDir)FluentValidation.sln<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/SolutionFile<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;MSBuildExtensions<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>$(BaseDir)libmsbuildmsbuild.community.tasks.dll<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/MSBuildExtensions<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+  <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/PropertyGroup<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+&nbsp;
+  <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;UsingTask</span> <span style="color: #000066;">AssemblyFile</span>=<span style="color: #ff0000;">&quot;$(MSBuildExtensions)&quot;</span> <span style="color: #000066;">TaskName</span>=<span style="color: #ff0000;">&quot;MSBuild.Community.Tasks.XmlUpdate&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+&nbsp;
+  <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;Target</span> <span style="color: #000066;">Name</span>=<span style="color: #ff0000;">&quot;default&quot;</span> <span style="color: #000066;">DependsOnTargets</span>=<span style="color: #ff0000;">&quot;Compile; Package&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+&nbsp;
+  <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;Target</span> <span style="color: #000066;">Name</span>=<span style="color: #ff0000;">&quot;Compile&quot;</span><span style="color: #000000; font-weight: bold;">&gt;</span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;MSBuild</span> <span style="color: #000066;">Projects</span>=<span style="color: #ff0000;">&quot;$(SolutionFile)&quot;</span> <span style="color: #000066;">Properties</span>=<span style="color: #ff0000;">&quot;Configuration=$(Configuration)&quot;</span>  <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+  <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/Target<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+&nbsp;
+  <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;Target</span> <span style="color: #000066;">Name</span>=<span style="color: #ff0000;">&quot;Package&quot;</span><span style="color: #000000; font-weight: bold;">&gt;</span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;ItemGroup<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+      <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;MainBinaries</span> <span style="color: #000066;">Include</span>=<span style="color: #ff0000;">&quot;$(BaseDir)srcFluentValidationbin$(Configuration)***.*&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/ItemGroup<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;">&lt;!-- First copy the nuspec template files to the package dir --&gt;</span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;Copy</span> <span style="color: #000066;">SourceFiles</span>=<span style="color: #ff0000;">&quot;$(MSBuildProjectDirectory)FluentValidation.nuspec&quot;</span> <span style="color: #000066;">DestinationFolder</span>=<span style="color: #ff0000;">&quot;$(PackageDir)tempFluentValidation&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;">&lt;!-- Copy the source files to the package dir --&gt;</span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;Copy</span> <span style="color: #000066;">SourceFiles</span>=<span style="color: #ff0000;">&quot;@(MainBinaries)&quot;</span> <span style="color: #000066;">DestinationFolder</span>=<span style="color: #ff0000;">&quot;$(PackageDir)tempFluentValidationlibNET35%(RecursiveDir)&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;">&lt;!-- Get the version number of the main FV assembly to insert into the nuspec files --&gt;</span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;GetAssemblyIdentity</span> <span style="color: #000066;">AssemblyFiles</span>=<span style="color: #ff0000;">&quot;$(OutputDir)FluentValidationFluentValidation.dll&quot;</span><span style="color: #000000; font-weight: bold;">&gt;</span></span>
+      <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;Output</span> <span style="color: #000066;">TaskParameter</span>=<span style="color: #ff0000;">&quot;Assemblies&quot;</span> <span style="color: #000066;">ItemName</span>=<span style="color: #ff0000;">&quot;AsmInfo&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/GetAssemblyIdentity<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+&nbsp;
+    <span style="color: #808080; font-style: italic;">&lt;!-- insert the version number into the nuspec files --&gt;</span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;XmlUpdate</span></span>
+<span style="color: #009900;">      <span style="color: #000066;">Namespace</span>=<span style="color: #ff0000;">&quot;http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd&quot;</span></span>
+<span style="color: #009900;">      <span style="color: #000066;">XmlFileName</span>=<span style="color: #ff0000;">&quot;$(PackageDir)tempFluentValidationFluentValidation.nuspec&quot;</span></span>
+<span style="color: #009900;">      <span style="color: #000066;">XPath</span>=<span style="color: #ff0000;">&quot;/package/metadata/version&quot;</span></span>
+<span style="color: #009900;">      <span style="color: #000066;">Value</span>=<span style="color: #ff0000;">&quot;%(AsmInfo.Version)&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+&nbsp;
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;Exec</span> <span style="color: #000066;">WorkingDirectory</span>=<span style="color: #ff0000;">&quot;$(BuildDir)Packages&quot;</span> </span>
+<span style="color: #009900;">          <span style="color: #000066;">Command</span>=<span style="color: #ff0000;">&quot;$(BaseDir)libnugetnuget.exe pack $(PackageDir)tempFluentValidationFluentValidation.nuspec&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+  <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/Target<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/Project<span style="color: #000000; font-weight: bold;">&gt;</span></span></span></pre></div></div>
+
+
+</div>
+
+<p>We begin by declaring some properties including the location of the solution file to build as well as where we want to place the generated packages. Next, we import the XmlUpdate task from the <a href="http://msbuildtasks.tigris.org/">MSBuild Community Extensions</a> project which will allow the nuspec files to be modified.</p>
+
+<p>The “default” target simply calls the “Compile” and “Package” targets. </p>
+
+<p>The “Compile” target invokes MSBuild on our solution file to compile the project.</p>
+
+<p>The “Package” target begins by declaring an ItemGroup consisting of the assemblies we want to package (in this case, it’s just FluentValidation.dll). It copies these along with the nuspec file into a temporary directory that mirrors the NuGet package format.</p>
+
+<p>Next, we use MSBuild’s “GetAssemblyIdentity” task to look up the version number of our assembly (defined in the AssemblyInfo.cs file). </p>
+
+<p>We next use the XmlUpdate task from MSBuild Community Extensions to modify the copy of the nuspec file. The version number extracted from the assmbly file in the previous step is injected into the nuspec’s &lt;version /&gt; element.</p>
+
+<p>Finally, we call nuget.exe’s “pack” command which generates the nupkg file.</p>
+
+<h3></h3>
+
+<h3>Step 3 - Uploading the package</h3>
+
+<p>Now that we’ve created the package, it needs to be uploaded to the <a href="http://nuget.org/">NuGet Gallery</a>. The gallery allows you to manually upload the package through the browser, but we can also automatically publish it through the command line tool.</p>
+
+<p>First, you’ll need to know what your NuGet Access Key is. This is a guid that allows you to upload packages to your NuGet account. Once signed up on <a href="http://nuget.org">http://nuget.org</a>, this key can be found under the “My Account” page.</p>
+
+<p>We’ll begin by storing this key in a text file. In my case, this file is kept in my DropBox at C:UsersJSkinnerDocumentsMy Dropboxnuget-access-key.txt (we don’t want to store this key in our repository or other users will be upload packages to our account).</p>
+
+<p>Next, we can use a PowerShell script that makes use of this key to upload the package. This script also lives in the buildscripts directory as “publish-nuget-packages.ps1”. Here’s the contents of the script:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:89fd026d-56fd-4b7e-8747-b407bb81c4c4" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="powershell" style="font-family:monospace;"><span style="color: #800080;">$keyfile</span> <span style="color: pink;">=</span> <span style="color: #800000;">&quot;$env:USERPROFILEDocumentsMy Dropboxnuget-access-key.txt&quot;</span>
+<span style="color: #800080;">$scriptpath</span> <span style="color: pink;">=</span> <span style="color: #008080; font-weight: bold;">split-path</span> <span style="color: #008080; font-style: italic;">-parent</span> <span style="color: #800080;">$MyInvocation</span>.MyCommand.Path
+<span style="color: #800080;">$nugetpath</span> <span style="color: pink;">=</span> <span style="color: #008080; font-weight: bold;">resolve-path</span> <span style="color: #800000;">&quot;$scriptpath/../lib/nuget/nuget.exe&quot;</span>
+<span style="color: #800080;">$packagespath</span> <span style="color: pink;">=</span> <span style="color: #008080; font-weight: bold;">resolve-path</span> <span style="color: #800000;">&quot;$scriptpath/../build/packages&quot;</span>
+&nbsp;
+<span style="color: #0000FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">-not</span> <span style="color: #000000;">&#40;</span><span style="color: #008080; font-weight: bold;">test-path</span> <span style="color: #800080;">$keyfile</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #0000FF;">throw</span> <span style="color: #800000;">&quot;Could not find the NuGet access key at $keyfile. If you're not Jeremy, you shouldn't be running this script!&quot;</span>
+<span style="color: #000000;">&#125;</span>
+<span style="color: #0000FF;">else</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #008080; font-weight: bold;">pushd</span> <span style="color: #800080;">$packagespath</span>
+&nbsp;
+  <span style="color: #008000;"># get our secret key. This is not in the repository.</span>
+  <span style="color: #800080;">$key</span> <span style="color: pink;">=</span> <span style="color: #008080; font-weight: bold;">get-content</span> <span style="color: #800080;">$keyfile</span>
+&nbsp;
+  <span style="color: #008000;"># Find all the packages and display them for confirmation</span>
+  <span style="color: #800080;">$packages</span> <span style="color: pink;">=</span> <span style="color: #008080; font-weight: bold;">dir</span> <span style="color: #800000;">&quot;*.nupkg&quot;</span>
+  <span style="color: #008080; font-weight: bold;">write-host</span> <span style="color: #800000;">&quot;Packages to upload:&quot;</span>
+  <span style="color: #800080;">$packages</span> <span style="color: pink;">|</span> <span style="color: pink;">%</span> <span style="color: #000000;">&#123;</span> <span style="color: #008080; font-weight: bold;">write-host</span> <span style="color: #000080;">$_</span>.Name <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #008000;"># Ensure we haven't run this by accident.</span>
+  <span style="color: #800080;">$yes</span> <span style="color: pink;">=</span> <span style="color: #008080; font-weight: bold;">New-Object</span> System.Management.Automation.Host.ChoiceDescription <span style="color: #800000;">&quot;&amp;Yes&quot;</span><span style="color: pink;">,</span> <span style="color: #800000;">&quot;Uploads the packages.&quot;</span>
+  <span style="color: #800080;">$no</span> <span style="color: pink;">=</span> <span style="color: #008080; font-weight: bold;">New-Object</span> System.Management.Automation.Host.ChoiceDescription <span style="color: #800000;">&quot;&amp;No&quot;</span><span style="color: pink;">,</span> <span style="color: #800000;">&quot;Does not upload the packages.&quot;</span>
+  <span style="color: #800080;">$options</span> <span style="color: pink;">=</span> <span style="color: #000000;">&#91;</span>System.Management.Automation.Host.ChoiceDescription<span style="color: #000000;">&#91;</span><span style="color: #000000;">&#93;</span><span style="color: #000000;">&#93;</span><span style="color: #000000;">&#40;</span><span style="color: #800080;">$no</span><span style="color: pink;">,</span> <span style="color: #800080;">$yes</span><span style="color: #000000;">&#41;</span>
+&nbsp;
+  <span style="color: #800080;">$result</span> <span style="color: pink;">=</span> <span style="color: #800080;">$host</span>.ui.PromptForChoice<span style="color: #000000;">&#40;</span><span style="color: #800000;">&quot;Upload packages&quot;</span><span style="color: pink;">,</span> <span style="color: #800000;">&quot;Do you want to upload the NuGet packages to the NuGet server?&quot;</span><span style="color: pink;">,</span> <span style="color: #800080;">$options</span><span style="color: pink;">,</span> <span style="color: #000000;">0</span><span style="color: #000000;">&#41;</span> 
+&nbsp;
+  <span style="color: #008000;"># Cancelled</span>
+  <span style="color: #0000FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #800080;">$result</span> <span style="color: #FF0000;">-eq</span> <span style="color: #000000;">0</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #800000;">&quot;Upload aborted&quot;</span>
+  <span style="color: #000000;">&#125;</span>
+  <span style="color: #008000;"># upload</span>
+  <span style="color: #0000FF;">elseif</span><span style="color: #000000;">&#40;</span><span style="color: #800080;">$result</span> <span style="color: #FF0000;">-eq</span> <span style="color: #000000;">1</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #800080;">$packages</span> <span style="color: pink;">|</span> <span style="color: pink;">%</span> <span style="color: #000000;">&#123;</span> 
+        <span style="color: #800080;">$package</span> <span style="color: pink;">=</span> <span style="color: #000080;">$_</span>.Name
+        <span style="color: #008080; font-weight: bold;">write-host</span> <span style="color: #800000;">&quot;Uploading $package&quot;</span>
+        <span style="color: pink;">&amp;</span> <span style="color: #800080;">$nugetpath</span> push <span style="color: pink;">-</span>source <span style="color: #800000;">&quot;http://packages.nuget.org/v1/&quot;</span> <span style="color: #800080;">$package</span> <span style="color: #800080;">$key</span>
+        <span style="color: #008080; font-weight: bold;">write-host</span> <span style="color: #800000;">&quot;&quot;</span>
+    <span style="color: #000000;">&#125;</span>
+  <span style="color: #000000;">&#125;</span>
+  <span style="color: #008080; font-weight: bold;">popd</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>We begin by declaring some variables that define where the access key file is located as well as where the built packages can be found (you’ll need to modify these if the directory structure for your project is different). </p>
+
+<p>We ensure that the access key file exists (if not, the script throws an exception) and then finds all the nupkg files that have been created in the packages directory. </p>
+
+<p>Next, we create a prompt (using $host.ui.PromptForChoice) that asks for confirmation before uploading (useful to prevent accidentally publishing packages). </p>
+
+<p>Finally, the script loops over each package and uploads it by calling nuget.exe’s “push” command. We pass the URL to the NuGet package feed as the “source” parameter followed by the path to the package and the access key.</p>
+
+<p>Now when we run this script from a PowerShell prompt, you’ll see some output something like this:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:81da5fcc-7673-4638-87f4-1e6fc13ae145" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="dos" style="font-family:monospace;">» ./buildscripts/publish-nuget-packages.ps1
+Packages to upload:
+FluentValidation.2.0.0.0.nupkg
+&nbsp;
+Upload packages
+<span style="color: #00b100; font-weight: bold;">Do</span> you want to upload the NuGet packages to the NuGet server?
+<span style="color: #66cc66;">&#91;</span>N<span style="color: #66cc66;">&#93;</span> No  <span style="color: #66cc66;">&#91;</span>Y<span style="color: #66cc66;">&#93;</span> Yes  <span style="color: #66cc66;">&#91;</span>?<span style="color: #66cc66;">&#93;</span> Help <span style="color: #66cc66;">&#40;</span>default is &quot;N&quot;<span style="color: #66cc66;">&#41;</span>: y
+&nbsp;
+Uploading FluentValidation.2.0.0.0.nupkg
+Creating an entry <span style="color: #00b100; font-weight: bold;">for</span> your package <span style="color: #66cc66;">&#91;</span>ID:FluentValidation Ver:2.0.0.0<span style="color: #66cc66;">&#93;</span>...
+Your package has been uploaded to the server but <span style="color: #000000; font-weight: bold;">not</span> published.
+Publishing your package <span style="color: #66cc66;">&#91;</span>ID:FluentValidation Ver:2.0.0.0<span style="color: #66cc66;">&#93;</span> to the live feed...
+Your package has been published to the live feed.</pre></div></div>
+
+
+</div>
+
+<p>The final versions of these files can all be found in the <a href="https://github.com/JeremySkinner/FluentValidation/tree/master/buildscripts">buildscripts directory of FluentValidation’s github repository</a>.</p>

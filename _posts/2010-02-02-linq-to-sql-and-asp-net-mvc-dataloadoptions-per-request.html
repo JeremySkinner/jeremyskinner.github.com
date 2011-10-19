@@ -1,0 +1,232 @@
+---
+layout: post
+title: "Linq to Sql and ASP.NET MVC - DataLoadOptions per Request"
+category: .NET
+postId: 329
+---
+<p>
+This is the third in a series of posts on using ASP.NET MVC with Linq to Sql:
+</p>
+<ul>
+<li>Part 1 - <a href="http://www.jeremyskinner.co.uk/2010/01/31/linq-to-sql-and-asp-net-mvc-datacontext-per-request/">DataContext Per Request</a></li>
+<li>Part 2 - <a href="http://www.jeremyskinner.co.uk/2010/02/01/linq-to-sql-and-asp-net-mvc-autocommit-and-the-routepreparser/">AutoCommit and the RoutePreParser</a></li>
+<li>Part 3 - <a href="http://www.jeremyskinner.co.uk/2010/02/02/linq-to-sql-and-asp-net-mvc-dataloadoptions-per-request/">DataLoadOptions per Request</a></li>
+</ul>
+<p>
+Code for this series is <a href="http://cloud.github.com/downloads/JeremySkinner/Experiments/LinqToSqlWithMvc.zip">available here</a>.
+</p>
+<p>
+One common problem when using an ORM is the issue of "select n+1". For example, take the following Linq to Sql query:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">var context <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> BlogDataContext<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+var posts <span style="color: #008000;">=</span> context.<span style="color: #0000FF;">Posts</span><span style="color: #008000;">;</span>
+&nbsp;
+<span style="color: #0600FF;">foreach</span><span style="color: #000000;">&#40;</span>var post <span style="color: #0600FF;">in</span> posts<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+   <span style="color: #0600FF;">foreach</span><span style="color: #000000;">&#40;</span>var comment <span style="color: #0600FF;">in</span> post.<span style="color: #0000FF;">Comments</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+     var commenter <span style="color: #008000;">=</span> comment.<span style="color: #0000FF;">Commenter</span>.<span style="color: #0000FF;">Name</span><span style="color: #008000;">;</span>
+     Console.<span style="color: #0000FF;">WriteLine</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;User {0} commented on post {1}&quot;</span>, commenter, post.<span style="color: #0000FF;">Title</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+This might look fine on the surface, but by default Linq to Sql will lazily-load all associations. This means that for each post loaded from the database Linq to Sql will issue a query to load the comments, and for each comment Linq to Sql will issue another query to load the commenter. So if you have 10 posts, and each post has 5 comments then you'll end up making 61 queries to the database (1 for the posts, 1 for each post to get the comments, and 1 for each comment to get the user) 
+</p>
+
+<p>
+This can be mitigated by using DataLoadOptions to eagerly load all of the data in a single query:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">var context <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> BlogDataContext<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+var options <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> DataLoadOptions<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+options.<span style="color: #0000FF;">LoadWith</span><span style="color: #008000;">&lt;</span>Post<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span>p <span style="color: #008000;">=&gt;</span> p.<span style="color: #0000FF;">Comments</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+options.<span style="color: #0000FF;">LoadWith</span><span style="color: #008000;">&lt;</span>Comment<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span>c <span style="color: #008000;">=&gt;</span> c.<span style="color: #0000FF;">Commenter</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+context.<span style="color: #0000FF;">LoadOptions</span> <span style="color: #008000;">=</span> options<span style="color: #008000;">;</span>
+&nbsp;
+var posts <span style="color: #008000;">=</span> context.<span style="color: #0000FF;">Posts</span><span style="color: #008000;">;</span>
+<span style="color: #0600FF;">foreach</span><span style="color: #000000;">&#40;</span>var post <span style="color: #0600FF;">in</span> posts<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+ <span style="color: #008080; font-style: italic;">//...</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<h3>The Problem</h3>
+<p>
+However, once a query has been executed, the LoadOptions property of a DataContext is frozen - you cannot then specify any additional eager loading paths.*
+</p>
+
+<p>
+If you're using a DataContext per request <a href="http://www.jeremyskinner.co.uk/2010/01/31/linq-to-sql-and-asp-net-mvc-datacontext-per-request/">as per my previous post</a> then this can be a problem. For example, imagine you have the following controller action:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PostsController <span style="color: #008000;">:</span> Controller <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">private</span> BlogDataContext context<span style="color: #008000;">;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> PostsController<span style="color: #000000;">&#40;</span>BlogDataContext context<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+     <span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">context</span> <span style="color: #008000;">=</span> context<span style="color: #008000;">;</span> <span style="color: #008080; font-style: italic;">//injected via our IoC container</span>
+  <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> ActionResult Show<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">int</span> id<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    var options <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> DataLoadOptions<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    options.<span style="color: #0000FF;">LoadWith</span><span style="color: #008000;">&lt;</span>Post<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span>p <span style="color: #008000;">=&gt;</span> p.<span style="color: #0000FF;">Comments</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    options.<span style="color: #0000FF;">LoadWith</span><span style="color: #008000;">&lt;</span>Comment<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span>c <span style="color: #008000;">=&gt;</span> c.<span style="color: #0000FF;">Commenter</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+    context.<span style="color: #0000FF;">LoadOptions</span> <span style="color: #008000;">=</span> options<span style="color: #008000;">;</span>
+&nbsp;
+    var post <span style="color: #008000;">=</span> context.<span style="color: #0000FF;">Posts</span>.<span style="color: #0000FF;">Single</span><span style="color: #000000;">&#40;</span>p <span style="color: #008000;">=&gt;</span> p.<span style="color: #0000FF;">Id</span> <span style="color: #008000;">==</span> id<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    <span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span>post<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+...then this will work as expected. But now imagine your action is decorated by an ActionFilter:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #000000;">&#91;</span>LoadCurrentUser<span style="color: #000000;">&#93;</span>
+<span style="color: #0600FF;">public</span> ActionResult Show<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">int</span> id<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span> 
+  <span style="color: #008080; font-style: italic;">//...</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+
+<p>
+...and let's assume that our LoadCurrentUser filter attempts to load the details of the current user from the database and store them in ViewData:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> LoadCurrentUserAttribute <span style="color: #008000;">:</span> ActionFilterAttribute <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> <span style="color: #0600FF;">void</span> OnActionExecuting<span style="color: #000000;">&#40;</span>ActionExecutingContext filterContext<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var context <span style="color: #008000;">=</span> ObjectFactory.<span style="color: #0000FF;">GetInstance</span><span style="color: #008000;">&lt;</span>BlogDataContext<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		var identity <span style="color: #008000;">=</span> filterContext.<span style="color: #0000FF;">HttpContext</span>.<span style="color: #0000FF;">User</span>.<span style="color: #0000FF;">Identity</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>identity.<span style="color: #0000FF;">IsAuthenticated</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			var currentUser <span style="color: #008000;">=</span> context.<span style="color: #0000FF;">Users</span>.<span style="color: #0000FF;">Single</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">UserName</span> <span style="color: #008000;">==</span> identity.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+			filterContext.<span style="color: #0000FF;">Controller</span>.<span style="color: #0000FF;">ViewData</span><span style="color: #000000;">&#91;</span><span style="color: #666666;">&quot;CurrentUser&quot;</span><span style="color: #000000;">&#93;</span> <span style="color: #008000;">=</span> currentUser<span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+Now when the controller is executed we will get the following error:
+</p>
+
+<p>
+<em>
+ Setting load options is not allowed after results have been returned from a query. 
+</em>
+</p>
+
+<p>
+This happens because we're trying to set the LoadOptions for the Post after the LoadCurrentUser filter already executed a query. 
+</p>
+<h3>The Solution</h3>
+<p>
+The approach I use to work around this problem is to use a custom AuthorizationFilter in conjunction with an eager loading specification.
+</p>
+<p>
+First, we define an interface for eager loading specifications:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">interface</span> IEagerLoadingSpecification <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">void</span> Build<span style="color: #000000;">&#40;</span>DataLoadOptions options<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+Next, we can write some classes that implement IEagerLoadingSpecification that define particular specifications for eager loading. Using the example above, we have PostWithComments and CommentWithCommenter:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PostWithComments <span style="color: #008000;">:</span> IEagerLoadingSpecification <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> Build<span style="color: #000000;">&#40;</span>DataLoadOptions options<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    options.<span style="color: #0000FF;">LoadWith</span><span style="color: #008000;">&lt;</span>Post<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span>p <span style="color: #008000;">=&gt;</span> p.<span style="color: #0000FF;">Comments</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> CommentWithCommenter <span style="color: #008000;">:</span> IEagerLoadingSpecification  <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> Build<span style="color: #000000;">&#40;</span>DataLoadOptions options<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+     options.<span style="color: #0000FF;">LoadWith</span><span style="color: #008000;">&lt;</span>Comment<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span>c <span style="color: #008000;">=&gt;</span> c.<span style="color: #0000FF;">Commenter</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+Next, we write an EagerlyLoadAttribute which implements IAuthorizationFilter and takes an array of Types in its constructor:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> EagerlyLoadAttribute <span style="color: #008000;">:</span> FilterAttribute, IAuthorizationFilter <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">private</span> Type<span style="color: #000000;">&#91;</span><span style="color: #000000;">&#93;</span> types<span style="color: #008000;">;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> EagerlyLoadAttribute<span style="color: #000000;">&#40;</span><span style="color: #0600FF;">params</span> Type<span style="color: #000000;">&#91;</span><span style="color: #000000;">&#93;</span> types<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">types</span> <span style="color: #008000;">=</span> types<span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> OnAuthorization<span style="color: #000000;">&#40;</span>AuthorizationContext filterContext<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    var loadOptions <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> DataLoadOptions<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    var context <span style="color: #008000;">=</span> ObjectFactory.<span style="color: #0000FF;">GetInstance</span><span style="color: #008000;">&lt;</span>BlogDataContext<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+    <span style="color: #0600FF;">foreach</span><span style="color: #000000;">&#40;</span>var type <span style="color: #0600FF;">in</span> types<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+       <span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">!</span> <span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>IEagerLoadingSpecification<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">IsAssignableFrom</span><span style="color: #000000;">&#40;</span>type<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+          <span style="color: #0600FF;">throw</span> <span style="color: #008000;">new</span> InvalidOperationException<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">string</span>.<span style="color: #0000FF;">Format</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Type {0} does not implement IEagerLoadingSpecification&quot;</span>, type<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+       <span style="color: #000000;">&#125;</span>
+&nbsp;
+      var spec <span style="color: #008000;">=</span> <span style="color: #000000;">&#40;</span>IEagerLoadingSpecification<span style="color: #000000;">&#41;</span>Activator.<span style="color: #0000FF;">CreateInstance</span><span style="color: #000000;">&#40;</span>type<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+      spec.<span style="color: #0000FF;">Build</span><span style="color: #000000;">&#40;</span>loadOptions<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    <span style="color: #000000;">&#125;</span>
+&nbsp;
+   context.<span style="color: #0000FF;">LoadOptions</span> <span style="color: #008000;">=</span> loadOptions<span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+So what does this filter do? Firstly, because it implements IAuthorizationFilter this means it will be invoked before any action filters that decorate your controller action. When OnAuthorization is invoked, it loops over each of the Types that we've passed to its constructor, instantiates them and casts them to IEagerLoadingSpecification. Next, a single DataLoadOptions instance is passed to each of the specifications in turn so they can build up the required eager loading paths.
+</p>
+
+
+<p>
+The end result is that you can now define your actions like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">  <span style="color: #000000;">&#91;</span>EagerlyLoad<span style="color: #000000;">&#40;</span><span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>PostWithComments<span style="color: #000000;">&#41;</span>, <span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>CommentWithCommenter<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span>
+  <span style="color: #000000;">&#91;</span>LoadCurrentUser<span style="color: #000000;">&#93;</span>
+  <span style="color: #0600FF;">public</span> ActionResult Show<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">int</span> id<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    var post <span style="color: #008000;">=</span> context.<span style="color: #0000FF;">Posts</span>.<span style="color: #0000FF;">Single</span><span style="color: #000000;">&#40;</span>p <span style="color: #008000;">=&gt;</span> p.<span style="color: #0000FF;">Id</span> <span style="color: #008000;">==</span> id<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    <span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span>post<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+Because the EagerlyLoadAttribute is an IAuthorizationFilter, it will be invoked before anything else meaning that by the time both our LoadCurrentUser filter and the Show action are invoked the DataLoadOptions have already been set on our DataContext.
+</p>
+
+<p>
+* Note that other ORMs like NHibernate, LLBLGen and the Entity Framework don't have this problem because they allow eager loading paths to be specified at the query level.
+</p>

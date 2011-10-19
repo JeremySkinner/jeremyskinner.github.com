@@ -1,0 +1,27 @@
+---
+layout: post
+title: "ASP.NET MVC Preview 4"
+category: .NET
+postId: 38
+---
+<p>I spent yesterday updating our largest application to MVC Preview 4. As part of the upgrade, I also made some tweaks to MvcContrib's <a href="http://www.codeplex.com/MVCContrib/Wiki/View.aspx?title=ConventionController&referringTitle=Documentation">ConventionController</a> (documentation not yet updated).</p>
+
+<p>Here's a summary of some of the things that have changed:</p>
+
+<ul>
+<li>TempData finally works with out of process session state</li>
+<li>Filters that implement IExceptionFilter can easily catch exceptions thrown by other filters</li>
+<li>The RescueAttribute in MvcContrib is now an IExceptionFilter, so it can be used with classes that don't inherit from ConventionController</li>
+<li>Multiple filters can now have the same sort order. This makes it easy to define a 'default' order, and then have other filters execute before/after</li>
+<li>TempData is now testable without needing to mock anything</li>
+<li>All the ComponentController hackery is gone - RenderAction is a much nicer alternative</li>
+<li>The <a href="http://www.jeremyskinner.co.uk/2008/06/03/aspnet-mvc-intercepting-the-routevaluedictionary/">bug that broke URL generation</a> is fixed</li>
+</ul>
+
+<p>Here's what sucks with Preview 4:</p>
+
+<ul>
+<li>SubDataItems <a href="http://blog.eworldui.net/post/2008/06/Using-SubDataItems-and-View-User-Controls-in-ASPNET-MVC.aspx">still doesn't seem to work properly</a></li>
+<li>AuthorizeAttribute, OutputCacheAttribute and HandleError attribute are sealed and have no virtual methods</li>
+<li>The new built in Ajax support doesn't seem to be easily replaceable with alternative libraries</li>
+</ul>

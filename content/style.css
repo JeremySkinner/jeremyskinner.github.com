@@ -1,0 +1,195 @@
+/*
+THEME NAME: jeremy1
+THEME URI: http://www.jeremyskinner.co.uk
+DESCRIPTION: My theme
+TAGS: Jeremy
+VERSION: 1.0
+AUTHOR: Jeremy Skinner
+AUTHOR URI:
+*/
+
+body {
+  font-family: Cambria, Georgia, "Times New Roman", serif;
+  margin: 0;
+  padding: 0;
+}
+#header-container {
+  background-image: URL(header-bg.gif);
+  background-color: #394663;
+  background-repeat: repeat-x;
+  margin-bottom: 10px;
+}
+#header-container #header-footer {
+  background-image: URL(dropshadow.gif);
+  background-repeat: repeat-x;
+  height: 5px;
+}
+#header {
+  width: 950px;
+  margin: 0 auto;
+  padding: 9px;
+}
+#header h1 {
+  padding: 0;
+  margin: 0 0 3px 0;
+  font-size: 1.6em;
+  font-weight: normal;
+  color: white;
+}
+#header h1 a {
+  color: white;
+  text-decoration: none;
+}
+#header .tagline {
+  color: #cbcbcb;
+  margin: 0;
+}
+#container {
+  width: 950px;
+  margin: 0 auto;
+}
+#content {
+  width: 709px;
+  float: left;
+}
+#sidebar {
+  width: 220px;
+  float: left;
+  border-left: 1px solid #d9d9d9;
+  margin-left: 10px;
+  padding-left: 10px;
+}
+#footer {
+  clear: both;
+  text-align: center;
+  color: #d9d9d9;
+  padding-top: 20px;
+}
+.post h2 a {
+  text-decoration: none;
+  color: black;
+}
+.post h2 a:hover { text-decoration: underline; }
+.post-separator {
+  background-image: URL(post-separator.gif);
+  height: 18px;
+  background-repeat: no-repeat;
+  background-position: center;
+  margin-top: 30px;
+  margin-bottom: 20px;
+}
+.post-pager .next, .comment-pager .next { 
+  float: right; 
+}
+.post-pager div, .comment-pager .next {
+  display: inline;
+}
+.comments {
+  list-style-type: none;
+  margin: 0; padding: 0;
+}
+
+.comment, .trackback, .pingback {
+  border: 1px solid #d9d9d9;
+  margin: 20px;
+  padding: 20px;
+}
+
+.avatar {
+  float:right;
+}
+
+.badges img { 
+  border: 0; 
+ }
+ 
+.badges a {
+
+}
+.notice {
+  border: 2px solid #ff0000;
+  margin: 5px 0 7px 0;
+  padding: 5px;
+  background-color: #f9d5d6;
+  font-weight: bold;
+}
+
+#profile .profile-bits {
+  float: right;
+  margin-right: 30px;
+}
+
+#profile {
+  margin-bottom: 15px;
+}
+
+#sidebar ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+#sidebar ul li {
+  margin: 0;
+  padding: 0;
+}
+img {
+  border: 0;
+}
+
+ul#pages { 
+  margin-bottom: 20px; 
+}
+
+ul#pages h2, ul#links h2 {
+  font-size: 1.1em;
+}
+
+ul.category li.month {
+  list-style-type: none;
+  margin-left: -40px;
+}
+
+.syntax {
+  color: #100;
+  background-color: #f9f9f9;
+  border: 1px solid silver;
+  margin: 0 0 1.5em 0;
+  overflow: auto;
+}
+
+/* IE FIX */
+.syntax {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: expression(this.scrollWidth > this.offsetWidth ? 15 : 0);
+  width: 100%;
+}
+
+.syntax table {
+  border-collapse: collapse;
+}
+
+.syntax div, .syntax td {
+  vertical-align: top;
+  padding: 2px 4px;
+}
+
+.syntax .line_numbers {
+  text-align: right;
+  background-color: #def;
+  color: gray;
+  overflow: visible;
+}
+
+/* potential overrides for other styles */
+.syntax pre {
+  margin: 0;
+  width: auto;
+  float: none;
+  clear: none;
+  overflow: visible;
+  font-size: 12px;
+  line-height: 1.333;
+  white-space: pre;
+}

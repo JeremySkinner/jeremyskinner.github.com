@@ -1,0 +1,83 @@
+---
+layout: post
+title: "ASP.NET MVC - Intercepting the RouteValueDictionary"
+category: .NET
+postId: 30
+---
+<p>ASP.NET MVC Preview 3 suffers from a bug where the controller name is omitted from the RouteValueDictionary when you call Html.ActionLink or Url.Action unless you explicitly specify it. </p>
+
+<p>Imagine you have the following routes defined:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">routes.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> Route<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Other/List&quot;</span>,
+	<span style="color: #008000;">new</span> RouteValueDictionary<span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> <span style="color: #000000;">&#123;</span>
+		controller <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;Other&quot;</span>,
+		action <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;List&quot;</span>
+	<span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span>,
+	<span style="color: #008000;">new</span> MvcRouteHandler<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>
+<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+routes.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> Route<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;{controller}/{action}/{id}&quot;</span>,
+	<span style="color: #008000;">new</span> RouteValueDictionary<span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> <span style="color: #000000;">&#123;</span>
+		action <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;Index&quot;</span>,
+		id <span style="color: #008000;">=</span> <span style="color: #000000;">&#40;</span><span style="color: #FF0000;">string</span><span style="color: #000000;">&#41;</span><span style="color: #0600FF;">null</span>
+	<span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span>,
+	<span style="color: #008000;">new</span> MvcRouteHandler<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>
+<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+
+<p>..and you have a HomeController with two actions: Index and List</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> HomeController <span style="color: #008000;">:</span> Controller <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> ActionResult Index<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> ActionResult List<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+And imagine the following code in the Index view:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #008000;">&lt;%=</span> Url.<span style="color: #0000FF;">Action</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;List&quot;</span><span style="color: #000000;">&#41;</span> <span style="color: #008000;">%&gt;</span></pre></div></div>
+
+
+
+
+<p>This should generate <b>MyApp/Home/List</b> but instead it generates <b>MyApp/Other/List</b>. </p>
+
+<p>To work around this, you can intercept the RouteValueDictionary before it is passed to your routes by adding a route 'pre-parser'. In here, you can copy the controller name from the routedata into the RouteValuesDictionary.</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> RouteValuePreParser <span style="color: #008000;">:</span> RouteBase <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> RouteData GetRouteData<span style="color: #000000;">&#40;</span>HttpContextBase httpContext<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> null<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> VirtualPathData GetVirtualPath<span style="color: #000000;">&#40;</span>RequestContext requestContext, RouteValueDictionary values<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">!</span>values.<span style="color: #0000FF;">ContainsKey</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;controller&quot;</span><span style="color: #000000;">&#41;</span> <span style="color: #008000;">&amp;&amp;</span> requestContext.<span style="color: #0000FF;">RouteData</span>.<span style="color: #0000FF;">Values</span>.<span style="color: #0000FF;">ContainsKey</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;controller&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			values.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;controller&quot;</span>, requestContext.<span style="color: #0000FF;">RouteData</span>.<span style="color: #0000FF;">Values</span><span style="color: #000000;">&#91;</span><span style="color: #666666;">&quot;controller&quot;</span><span style="color: #000000;">&#93;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+		<span style="color: #0600FF;">return</span> null<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>You can then add this 'fake' route to your RouteTable, but it must be the <b>first</b> route:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">RouteTable.<span style="color: #0000FF;">Routes</span>.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> RouteValuePreParser<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+

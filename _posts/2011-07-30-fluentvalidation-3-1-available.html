@@ -1,0 +1,37 @@
+---
+layout: post
+title: "FluentValidation 3.1 available"
+category: FluentValidation
+postId: 665
+---
+<p>FluentValidation 3.1 is now available for downloaded either <a href="http://fluentvalidation.codeplex.com">from the CodePlex page</a> or through NuGet. </p>  <p>The biggest new feature of 3.1 is being able to share a condition across multiple rules. In previous versions, if you wanted to re-use a condition across multiple rules then you’d have to declare the condition multiple times:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:3b3338ae-0edd-429a-9e3f-e8a1b0aed71a" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PersonValidator <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>Person<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #0600FF;">public</span> PersonValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+        RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Surname</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">When</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Id</span> <span style="color: #008000;">&gt;</span> <span style="color: #FF0000;">0</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+        RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Forename</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">When</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Id</span> <span style="color: #008000;">&gt;</span> <span style="color: #FF0000;">0</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>…but with 3.1 you can declare the condition once using a nested closure:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:b15b4bbe-9ac5-426f-b355-8f90805082b6" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PersonValidator <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>Person<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #0600FF;">public</span> PersonValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+        When<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Id</span> <span style="color: #008000;">&gt;</span> <span style="color: #FF0000;">0</span>, <span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #008000;">=&gt;</span> <span style="color: #000000;">&#123;</span>
+           RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Surname</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+           RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Forename</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+        <span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>In addition, FluentValidation’s support for nullable types (which was enhancd with 3.0) has been extended to work with cross-property rules. </p>

@@ -1,0 +1,156 @@
+---
+layout: post
+title: "Linq to Sql and ASP.NET MVC - DataContext Per Request"
+category: .NET
+postId: 292
+---
+<p>
+This is the first in a series of posts about using Linq to Sql with ASP.NET MVC. 
+</p>
+<ul>
+<li>Part 1 - <a href="http://www.jeremyskinner.co.uk/2010/01/31/linq-to-sql-and-asp-net-mvc-datacontext-per-request/">DataContext Per Request</a></li>
+<li>Part 2 - <a href="http://www.jeremyskinner.co.uk/2010/02/01/linq-to-sql-and-asp-net-mvc-autocommit-and-the-routepreparser/">AutoCommit and the RoutePreParser</a></li>
+<li>Part 3 - <a href="http://www.jeremyskinner.co.uk/2010/02/02/linq-to-sql-and-asp-net-mvc-dataloadoptions-per-request/">DataLoadOptions per Request</a></li>
+</ul>
+<p>
+Code for this series is <a href="http://cloud.github.com/downloads/JeremySkinner/Experiments/LinqToSqlWithMvc.zip">available here</a>.
+</p>
+<p>
+When using an ORM tool within a web application, it's often common to scope a unit of work to the lifetime of an HTTP Request. If you're using Linq to Sql and ASP.NET MVC, you can achieve this by using an Inversion of Control container in conjunction with an ActionFilter.
+</p>
+
+<p>
+For this example, I'm going to be using the <a href="http://structuremap.sourceforge.net/Default.htm">StructureMap</a> IoC container alongside a fictional "Blog" database.
+</p>
+
+<p>
+Firstly, you'll need to configure StructureMap by calling ObjectFactory.Configure inside your Global.asax passing in a custom Registry instance:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">void</span> Application_Start<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	RegisterRoutes<span style="color: #000000;">&#40;</span>RouteTable.<span style="color: #0000FF;">Routes</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	ObjectFactory.<span style="color: #0000FF;">Configure</span><span style="color: #000000;">&#40;</span>cfg <span style="color: #008000;">=&gt;</span> <span style="color: #000000;">&#123;</span>
+		cfg.<span style="color: #0000FF;">AddRegistry</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> MyRegistry<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>The code for MyRegistry looks like this:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> MyRegistry <span style="color: #008000;">:</span> Registry <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> MyRegistry<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">For</span><span style="color: #008000;">&lt;</span>BlogDataContext<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+			.<span style="color: #0000FF;">HttpContextScoped</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+			.<span style="color: #0000FF;">Use</span><span style="color: #000000;">&#40;</span>c <span style="color: #008000;">=&gt;</span> <span style="color: #008000;">new</span> BlogDataContext<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		Scan<span style="color: #000000;">&#40;</span>scan <span style="color: #008000;">=&gt;</span> <span style="color: #000000;">&#123;</span>
+			scan.<span style="color: #0000FF;">AddAllTypesOf</span><span style="color: #008000;">&lt;</span>Controller<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Here I'm telling StructureMap to create one instance of my BlogDataContext per HTTP Request as well as registering each Controller instance with the container.
+</p>
+<p>
+Next, we need to tell MVC to use StructureMap to instantiate our controllers. This can be done by creating a custom ControllerFactory:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> StructureMapControllerFactory <span style="color: #008000;">:</span> DefaultControllerFactory <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">override</span> IController GetControllerInstance<span style="color: #000000;">&#40;</span>RequestContext requestContext, Type controllerType<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> <span style="color: #000000;">&#40;</span>IController<span style="color: #000000;">&#41;</span> ObjectFactory.<span style="color: #0000FF;">GetInstance</span><span style="color: #000000;">&#40;</span>controllerType<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+We can then replace the DefaultControllerFactory with the StructureMapControllerFactory in our Application_Start:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">void</span> Application_Start<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	RegisterRoutes<span style="color: #000000;">&#40;</span>RouteTable.<span style="color: #0000FF;">Routes</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	ObjectFactory.<span style="color: #0000FF;">Configure</span><span style="color: #000000;">&#40;</span>cfg <span style="color: #008000;">=&gt;</span> <span style="color: #000000;">&#123;</span>
+		cfg.<span style="color: #0000FF;">AddRegistry</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> MyRegistry<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	ControllerBuilder.<span style="color: #0000FF;">Current</span>.<span style="color: #0000FF;">SetControllerFactory</span><span style="color: #000000;">&#40;</span>
+		<span style="color: #008000;">new</span> StructureMapControllerFactory<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+Now, if we create a PostController (for creating and editing Posts in our fictional blog), we can now take a BlogDataContext in the constructor (for better testability, you'd probably want to hide the DataContext behind an interface):
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PostController <span style="color: #008000;">:</span> Controller <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">readonly</span> BlogDataContext context<span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> PostController<span style="color: #000000;">&#40;</span>BlogDataContext context<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">context</span> <span style="color: #008000;">=</span> context<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> ActionResult Edit<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">int</span> id<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var post <span style="color: #008000;">=</span> context.<span style="color: #0000FF;">Posts</span>.<span style="color: #0000FF;">Single</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Id</span> <span style="color: #008000;">==</span> id<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span>post<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Now, visiting http://mysite/Post/Edit/1 would return a view to display a post with the Id of 1 (assuming the appropriate Post exists in the database). 
+</p>
+
+<h3>Automatically Submitting Changes</h3>
+
+<p>
+We can take this a stage further by adding an ActionFilter to our application that will automatically call SubmitChanges on our DataContext at the end of the HTTP Request:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> AutoCommitAttribute <span style="color: #008000;">:</span> ActionFilterAttribute <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> <span style="color: #0600FF;">void</span> OnActionExecuted<span style="color: #000000;">&#40;</span>ActionExecutedContext filterContext<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>filterContext.<span style="color: #0000FF;">Controller</span>.<span style="color: #0000FF;">ViewData</span>.<span style="color: #0000FF;">ModelState</span>.<span style="color: #0000FF;">IsValid</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			var currentDataContext <span style="color: #008000;">=</span> ObjectFactory.<span style="color: #0000FF;">GetInstance</span><span style="color: #008000;">&lt;</span>BlogDataContext<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+			<span style="color: #0600FF;">using</span> <span style="color: #000000;">&#40;</span>var transaction <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> TransactionScope<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+				currentDataContext.<span style="color: #0000FF;">SubmitChanges</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+				transaction.<span style="color: #0000FF;">Complete</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+			<span style="color: #000000;">&#125;</span>
+		<span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Here we call into StructureMap to retrieve our current DataContext and commit any changes back to the database inside a transaction. Note that this will only happen if the ModelState is valid (ie there are no validation errors). </p>
+
+<p>Another thing to keep in mind that using an IoC container as a Service Locator (as we're doing in this filter) is generally considered bad practice. There are ways <a href="http://www.jeremyskinner.co.uk/2008/11/08/dependency-injection-with-aspnet-mvc-action-filters/">around</a> <a href="http://www.iridescence.no/post/Constructor-Injection-for-ASPNET-MVC-Action-Filters.aspx">this</a> but these are outside the scope of this post.
+</p>
+<p>
+Now, whenever we make a change to one of our entities the change will automatically be committed to the database provided the action is decorated with the AutoCommit attribute:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #000000;">&#91;</span>AcceptVerbs<span style="color: #000000;">&#40;</span>HttpVerbs.<span style="color: #0000FF;">Post</span><span style="color: #000000;">&#41;</span>, AutoCommit<span style="color: #000000;">&#93;</span>
+<span style="color: #0600FF;">public</span> ActionResult Create<span style="color: #000000;">&#40;</span>Post post<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	context.<span style="color: #0000FF;">Posts</span>.<span style="color: #0000FF;">InsertOnSubmit</span><span style="color: #000000;">&#40;</span>post<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #0600FF;">return</span> RedirectToAction<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Index&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+

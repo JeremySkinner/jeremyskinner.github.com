@@ -1,0 +1,32 @@
+---
+layout: post
+title: "Hosting a Git server under IIS7 on Windows"
+category: git
+postId: 529
+---
+<p><strong>Update: </strong>Please be aware that an alternative (and probably more stable) the approach for hosting a git http server under windows is to use Apache <a href="http://www.jeremyskinner.co.uk/2010/07/31/hosting-a-git-server-under-apache-on-windows/">which I blogged about here</a>.</p>  <p>Traditionally <a href="http://git-scm.com/">Git</a> requires the use of SSH if you want to host read/write repositories on a server. While this is certainly possible to do on Windows by running <a href="http://www.markembling.info/view/git-server-gitosis-and-cygwin-on-windows">OpenSSH under Cygwin</a>, it isn’t a particularly simple process and does require some familiarity with unix/linux.</p>  <p>However, with the <a href="http://progit.org/2010/03/04/smart-http.html">smart HTTP support</a> introduced with with Git 1.6.6 it is now possible to push to git repositories over HTTP. Although the default implementation of the smart http protocol requires the use of apache, there are other implementations available. For example, <a href="http://github.com/schacon/grack">Grack</a> is a ruby-based implementation using the Rack framework and <a href="http://github.com/dvdotsenko/git_http_backend.py">git_http_backend.py</a> implements similar functionality in Python.</p>  <p>I decided to have a go at putting together a native .NET implementation of git-http-backend using ASP.NET MVC and the excellent <a href="http://www.eqqon.com/index.php/GitSharp">GitSharp</a> library. The result is available on GitHub in the imaginatively titled <a href="http://github.com/jeremyskinner/git-dot-aspx">git-dot-aspx</a> (GitAspx) project.</p>  <p>To get started, you’ll need to <a href="http://github.com/jeremyskinner/git-dot-aspx"><strike>download the source</strike></a><strike> and compile the project</strike> download the binaries <a href="http://github.com/JeremySkinner/git-dot-aspx/downloads">from the github project page</a>. </p>  <p>Once compiled, create a new web site in IIS and point it at the directory containing the application. Be sure to select the ASP.NET v4 Application Pool.</p>  <p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/06/image.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" class="wlDisabledImage" title="image" border="0" alt="image" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/06/image_thumb.png" width="386" height="484" /></a></p>  <p>Next, you’ll need to edit the application’s web.config so GitAspx knows where to look for your repositories. This is done by setting the “RepositoriesDirectory” app setting:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:c6fa5a1c-45a7-491f-a405-639043372218" class="wlWriterSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="xml" style="font-family:monospace;"><span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;appsettings<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+    <span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;add</span> <span style="color: #000066;">value</span>=<span style="color: #ff0000;">&quot;C:Repositories&quot;</span> <span style="color: #000066;">key</span>=<span style="color: #ff0000;">&quot;RepositoriesDirectory&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/appsettings<span style="color: #000000; font-weight: bold;">&gt;</span></span></span></pre></div></div>
+
+
+
+</div>
+
+<p>Once configured, browsing to the application will display a list of projects. Clicking on a project shows the clone URL:</p>
+
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/10/Capture.png"><img style="background-image: none; border-bottom: 0px; border-left: 0px; padding-left: 0px; padding-right: 0px; display: inline; border-top: 0px; border-right: 0px; padding-top: 0px" title="Capture" border="0" alt="Capture" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/10/Capture_thumb.png" width="644" height="470" /></a></p>
+
+<p>You can now clone, pull and push from this URL:</p>
+
+<pre>git clone http://localhost:8080/FluentValidation
+echo foo &gt; foo.txt
+git add -A
+git commit -m &quot;Committing&quot;
+git push origin master</pre>
+
+<p>It’s probably a good idea to put some authentication in place (eg basic authentication over SSL) so not just everyone can push to your repositories! You can also allow/deny access to specific projects using the standard ASP.NET URL authorization mechanism.</p>
+
+<p><strike>At present, this is only an implementation of the “smart” protocol (which allows both push/pull), but I’m also planning on adding support for the “dumb” protocol to be backwards compatible with older clients.&#160; </strike><strong>Update 19 Oct 2010: </strong>Support for the dumb protocol is available as of the <a href="http://www.jeremyskinner.co.uk/2010/10/19/gitaspx-0-3-available/">0.3 release</a>.</p>

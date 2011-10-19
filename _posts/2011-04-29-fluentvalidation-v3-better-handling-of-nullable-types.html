@@ -1,0 +1,25 @@
+---
+layout: post
+title: "FluentValidation v3: Better handling of Nullable Types"
+category: FluentValidation
+postId: 641
+---
+<p>This is part 4 in a post about new features in FluentValidation v3.</p>  <ul>   <li><a href="http://www.jeremyskinner.co.uk/2011/02/03/fluentvalidation-v3-rulesets/">Part 1 – RuleSets</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/02/04/fluentvalidation-v3-customizevalidatorattribute/">Part 2 – CustomizeValidatorAttribute</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/04/28/fluentvalidation-v3-asp-net-mvc-validation-interceptors/">Part 3 – ASP.NET MVC validation interceptors</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/04/29/fluentvalidation-v3-better-handling-of-nullable-types/">Part 4 – Better handling of Nullable Types</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/06/17/fluentvalidation-v3-conditional-validation-of-collection-elements/">Part 5 – Conditional validation of collection elements</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/06/25/fluentvalidation-v3-other-features/">Part 6 – Other Features</a> <!--EndFragment--></li> </ul>  <p>In previous versions of FluentValidation, if you wanted to use any of the comparison validators (GreaterThan, LessThan etc) against a nullable type you had to validate the nullable’s Value property in combination with a null check:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:b870b6b9-00b7-41af-a841-836264984308" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">NullableInt</span>.<span style="color: #0000FF;">Value</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GreaterThan</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">0</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">When</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">NullableInt</span> <span style="color: #008000;">!=</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+</div>
+
+<p>This was necessary because the comparison validators require that the property implement IComparable (which Nullable&lt;T&gt; does not implement). Although this worked, it was somewhat cumbersome and unnecessarily verbose.</p>
+
+<p>With FluentValidation v3, there are additional overloads for all of the comparison validators that work directly with nullables, so the above can be simplifed to:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:c32923f8-3c39-4896-ab53-debccd123928" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">NullableInt</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GreaterThan</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">0</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+</div>

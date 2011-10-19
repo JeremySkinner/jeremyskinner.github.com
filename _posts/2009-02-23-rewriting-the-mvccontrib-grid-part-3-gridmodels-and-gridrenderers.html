@@ -1,0 +1,125 @@
+---
+layout: post
+title: "Rewriting the MvcContrib Grid part 3 - GridModels and GridRenderers"
+category: .NET
+postId: 98
+---
+<p>This is part 3 of a series about the new MvcContrib grid.</p>
+<ul>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/08/rewriting-the-mvccontrib-grid/">Part 1 - Introduction</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/22/rewriting-the-mvccontrib-grid-part-2-new-syntax/">Part 2 - New Syntax</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/23/rewriting-the-mvccontrib-grid-part-3-gridmodels-and-gridrenderers">Part 3 - GridModels and GridRenderes</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/28/mvccontrib-grid-part-4-limitations-of-the-webformsviewengine">Part 4 - Limitations of the WebFormsViewEngine</a></li>
+<li>
+<a href="http://www.jeremyskinner.co.uk/2009/03/01/mvccontrib-grid-part-5-the-action-syntax">Part 5 - The Action Syntax</a>
+</li>
+  <li><a href="http://www.jeremyskinner.co.uk/2010/03/14/mvccontrib-grid-part-6-sorting/">Part 6 – Sorting</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2010/04/27/mvccontrib-grid-part-7-auto-generated-columns/">Part 7 – Auto-generated columns</a>
+</ul>
+<p>
+Internally, the new MvcContrib grid makes use of the <strong>GridModel</strong> and <strong>GridRenderer</strong> classes to create the grid definition and then render it. It is possible to make use of these classes yourself to customise the grid.
+</p>
+<h2>Grid Models</h2>
+<p>The GridModel stores the definition for the grid. That is, it contains column definitions, custom attributes and the renderer to use (see below). Each time you call a method on the Grid class it is delegated to the underlying GridModel. For example, calling the <strong>Columns</strong> defines a collection of GridColumn objects which are instantiated and stored in the GridModel:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model.<span style="color: #9900cc;">People</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Columns</span><span style="color: #006600; font-weight:bold;">&#40;</span>column <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+               column <span style="color: #006600; font-weight: bold;">=&gt;</span> column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+               column <span style="color: #006600; font-weight: bold;">=&gt;</span> column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">DateOfBirth</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+<span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+
+<p>
+Instead of defining columns in your view, you can create your own GridModel and then pass this object to a call to Html.Grid:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PersonGridModel <span style="color: #008000;">:</span> GridModel<span style="color: #008000;">&lt;</span>Person<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #0600FF;">public</span> PersonGridModel<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+        Column.<span style="color: #0600FF;">For</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+        Column.<span style="color: #0600FF;">For</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">DateOfBirth</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model.<span style="color: #9900cc;">People</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">WithModel</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #0000ff; font-weight: bold;">new</span> PersonGridModel<span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+<p>
+Note that GridModels aren't limited just to column definitions. Everything that you could invoke by calling Html.Grid has an equivalent method on the GridModel (eg setting Empty Text, custom section overrides, header attributes etc).
+</p>
+<p>
+There are several advantages of this approach:
+</p>
+<ul>
+<li>If you have large grid definitions using a GridModel can help to keep the view uncluttered.</li>
+<li>It is easy to re-use the same grid in multiple locations.</li>
+<li>You can re-use common grid code through inheritance.</li>
+</ul>
+<p>
+There is one other benefit to using a GridModel. Visual Basic 2008 doesn't support Lambda Statements meaning that it is not possible to use the Columns() method on the Grid directly. By using a grid model then you can still make use of the grid from within VB (if you're that way inclined).
+</p>
+
+<h2>Grid Renderers</h2>
+<p>Internally, it is the job of the GridRenderer to take a GridModel and render it to the output stream. The default GridRenderer is the <strong>HtmlTableGridRenderer</strong>. Which, surprisingly enough, renders the grid as an HTML table. By specifying your own GridRenderer, you can completely alter how the grid is rendered without resorting to completely rewriting the grid component.</p>
+<p>
+For example, in one of my larger ASP.NET MVC applications I frequently have the need to output data as an Excel spreadsheet and I used the grid to do so. In order to make this work I had to inherit from GridBase and override the methods related to generating output and then define a new set of helper methods to cater for the various Grid overloads. In the end I ended up with several overloads like this:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #0600FF;">void</span> ExcelGrid<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> HtmlHelper helper, <span style="color: #FF0000;">string</span> viewDataKey, Action<span style="color: #008000;">&lt;</span>IRootGridColumnBuilder<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> columns<span style="color: #000000;">&#41;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span>
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #0600FF;">void</span> ExcelGrid<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> HtmlHelper helper, <span style="color: #FF0000;">string</span> viewDataKey, Action<span style="color: #008000;">&lt;</span>IRootGridColumnBuilder<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> columns, Action<span style="color: #008000;">&lt;</span>IGridSections<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> sections<span style="color: #000000;">&#41;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span>
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #0600FF;">void</span> ExcelGrid<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> HtmlHelper helper, <span style="color: #FF0000;">string</span> viewDataKey, IDictionary htmlAttributes, Action<span style="color: #008000;">&lt;</span>IRootGridColumnBuilder<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> columns<span style="color: #000000;">&#41;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span> 
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #0600FF;">void</span> ExcelGrid<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> HtmlHelper helper, <span style="color: #FF0000;">string</span> viewDataKey, IDictionary htmlAttributes, Action<span style="color: #008000;">&lt;</span>IRootGridColumnBuilder<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> columns, Action<span style="color: #008000;">&lt;</span>IGridSections<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> sections<span style="color: #000000;">&#41;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span>
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #0600FF;">void</span> ExcelGrid<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> HtmlHelper helper, IEnumerable<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> dataSource, Action<span style="color: #008000;">&lt;</span>IRootGridColumnBuilder<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> columns<span style="color: #000000;">&#41;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span>
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #0600FF;">void</span> ExcelGrid<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> HtmlHelper helper, IEnumerable<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> dataSource, Action<span style="color: #008000;">&lt;</span>IRootGridColumnBuilder<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> columns, Action<span style="color: #008000;">&lt;</span>IGridSections<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> sections<span style="color: #000000;">&#41;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span> 
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #0600FF;">void</span> ExcelGrid<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> HtmlHelper helper, IEnumerable<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> dataSource, IDictionary htmlAttributes, Action<span style="color: #008000;">&lt;</span>IRootGridColumnBuilder<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> columns<span style="color: #000000;">&#41;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span> 
+<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #0600FF;">void</span> ExcelGrid<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> HtmlHelper helper, IEnumerable<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> dataSource, IDictionary htmlAttributes, Action<span style="color: #008000;">&lt;</span>IRootGridColumnBuilder<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> columns, Action<span style="color: #008000;">&lt;</span>IGridSections<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> sections<span style="color: #000000;">&#41;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span></pre></div></div>
+
+
+
+<p>...which was largely a duplication of the Grid overloads in mvccontrib. They could then be used like this:</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span> Html.<span style="color: #9900cc;">ExcelGrid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model.<span style="color: #9900cc;">People</span>, column <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+         column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+         column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">DateOfBirth</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+ <span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+<p>...which would produce the grid as Excel-XML.</p>
+<p>With the new grid I can create a new GridRenderer implementation and then use it like this, with no need to create additional HtmlHelper extensions:</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model.<span style="color: #9900cc;">People</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Column</span><span style="color: #006600; font-weight:bold;">&#40;</span>column <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+               column <span style="color: #006600; font-weight: bold;">=&gt;</span> column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+               column <span style="color: #006600; font-weight: bold;">=&gt;</span> column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">DateOfBirth</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+<span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">RenderUsing</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #0000ff; font-weight: bold;">new</span> ExcelGridRenderer<span style="color: #006600; font-weight: bold;">&lt;</span>Person<span style="color: #006600; font-weight: bold;">&gt;</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span></pre></div></div>
+
+
+
+<p>The ExcelGridRenderer<T> could inherit from GridRenderer<T> and override the methods needed for constructing the grid header, footer, rows etc. You may notice that the methods on GridRenderer are very similar to those on the GridBase class. This is not a coincidence - most of the code in the GridRenderer is re-used from the old GridBase.</p> 
+<p>Note it is also possible to specify the renderer from within a GridModel:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PersonGridModel <span style="color: #008000;">:</span> GridModel<span style="color: #008000;">&lt;</span>Person<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #0600FF;">public</span> PersonGridModel<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+        Column.<span style="color: #0600FF;">For</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+        Column.<span style="color: #0600FF;">For</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">DateOfBirth</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+        RenderUsing<span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> ExcelGridRenderer<span style="color: #008000;">&lt;</span>Person<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+    <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>
+Hopefully this brief introduction to GridRenderers and GridModels shows how it is possible to make your grids extendable and reusable. <del datetime="2009-02-28T16:00:02+00:00">In my next post I'm going to focus on Paging in more detail.</del> My next post covers working around some of the issues of the WebForms View Engine.
+</p>

@@ -1,0 +1,54 @@
+---
+layout: post
+title: "FluentValidation v3: Other features"
+category: FluentValidation
+postId: 651
+---
+<p>This is part 6 in a series of posts about the new features in FluentValidation v3.</p>  <ul>   <li><a href="http://www.jeremyskinner.co.uk/2011/02/03/fluentvalidation-v3-rulesets/">Part 1 – RuleSets</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/02/04/fluentvalidation-v3-customizevalidatorattribute/">Part 2 – CustomizeValidatorAttribute</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/04/28/fluentvalidation-v3-asp-net-mvc-validation-interceptors/">Part 3 – ASP.NET MVC validation interceptors</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/04/29/fluentvalidation-v3-better-handling-of-nullable-types/">Part 4 – Better handling of Nullable Types</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/06/17/fluentvalidation-v3-conditional-validation-of-collection-elements/">Part 5 – Conditional validation of collection elements</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/06/25/fluentvalidation-v3-other-features/">Part 6 – Other Features</a> </li> </ul>  <p>In addition to the major new features I’ve already posted about, there are several other smaller features available in FluentValidation v3:</p>  <h3>Support for DisplayAttribute</h3>  <p>FluentValidation will now automatically infer the display name for properties annotated with the DisplayAttribute/DisplayNameAttribute.</p>  <h3>Support for custom arguments in WithLocalizedMessage</h3>  <p>Localized error messages now support custom format arguments in the same way as non-localized messages.</p>  <h3>Support for validating child properties at the top level</h3>  <p>FluentValidation v3 allows rules to be defined for child properties within the top level validator:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:98a5d1f3-8a14-4354-b974-db27d0cd2b8d" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Address</span>.<span style="color: #0000FF;">PostalCode</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+</div>
+
+<p>In previous versions of FluentValidation, the property name would always be generated as “PostalCode” instead of “Address.PostalCode”, and you’d have to rely on a <a href="http://fluentvalidation.codeplex.com/wikipage?title=CreatingAValidator&amp;referringTitle=Documentation&amp;ANCHOR#ReusingValidators">child validator</a> which in some situations isn’t desirable. </p>
+
+<h3>Additional rules specified on the client</h3>
+
+<p>Support for client side error messages has been slightly expanded. The following rules are now supported on the client:</p>
+
+<ul>
+  <li>NotNull/NotEmpty </li>
+
+  <li>Matches (regex) </li>
+
+  <li>InclusiveBetween (range) </li>
+
+  <li>CreditCard </li>
+
+  <li>Email </li>
+
+  <li>EqualTo (cross-property equality comparison) </li>
+
+  <li>Length </li>
+</ul>
+
+<p>In addition, the client-side error messages for several validators have been improved so they no longer rely on FluentValidation’s named placeholders when running on the client.</p>
+
+<h3>Specify a ruleset used to generate client-side rules</h3>
+
+<p>If you’re using rulesets alongside ASP.NET MVC, then you’ll notice that by default FluentValidation will only generate client-side error messages for rules not part of any ruleset. You can instead specify that FluentValidation should generate clientside rules from a particular ruleset by attributing your controller action with a RuleSetForClientSideMessagesAttribute:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:64d980df-6554-4aca-9a3e-7e466ab8555b" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #000000;">&#91;</span>RuleSetForClientSideMessages<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;MyRuleset&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span>
+<span style="color: #0600FF;">public</span> ActionResult Index<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+   <span style="color: #0600FF;">return</span> View<span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> PersonViewModel<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>…plus several bug fixes.</p>

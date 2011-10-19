@@ -1,0 +1,46 @@
+---
+layout: post
+title: "Rewriting the MvcContrib Grid"
+category: .NET
+postId: 88
+---
+<p>This is part 1 of a series on the new MvcContrib grid component.</p>
+
+<ul>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/08/rewriting-the-mvccontrib-grid/">Part 1 - Introduction</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/22/rewriting-the-mvccontrib-grid-part-2-new-syntax/">Part 2 - New Syntax</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/23/rewriting-the-mvccontrib-grid-part-3-gridmodels-and-gridrenderers">Part 3 - GridModels and GridRenderes</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2009/02/28/mvccontrib-grid-part-4-limitations-of-the-webformsviewengine">Part 4 - Limitations of the WebFormsViewEngine</a></li>
+<li>
+<a href="http://www.jeremyskinner.co.uk/2009/03/01/mvccontrib-grid-part-5-the-action-syntax">Part 5 - The Action Syntax</a>
+</li>
+  <li><a href="http://www.jeremyskinner.co.uk/2010/03/14/mvccontrib-grid-part-6-sorting/">Part 6 – Sorting</a></li>
+<li><a href="http://www.jeremyskinner.co.uk/2010/04/27/mvccontrib-grid-part-7-auto-generated-columns/">Part 7 – Auto-generated columns</a>
+</ul>
+
+<p>Over the next couple of weeks I'm hoping to write a few posts on the upgrades I'm doing to the <a href="http://www.codeplex.com/MVCContrib/Wiki/View.aspx?title=Grid&referringTitle=Documentation">MvcContrib grid component.</a> These are the features that I'm planning on adding: 
+</p>
+
+<h2>A Fluent Interface</h2>
+<p>
+Like the HTML-helpers built into the ASP.NET MVC framework, the mvccontrib grid suffers from 'overload hell'. Switching to a fluent interface should provide a cleaner and more discoverable API. </p>
+<h2>Discouraging logic in Views</h2>
+<p>
+One side effect of the fluent interface is that it will no longer be possible to use the grid's section overrides. However, I consider this to be a good thing. Embedding custom sections makes it all to easy to get stuck in 'tag soup'. To make up for this, the new grid will support rendering partials for custom sections.  
+</p>
+<h2>Reusable Grid Models</h2>
+<p>
+The new grid will support reusable grid definitions. That is, you will be able to define a grid in a external class and then reference this from your views. One benefit of this approach is that it means the grid will finally be accessible to VB users. The current grid is C#-only due to its use of lambda-statements for defining columns. 
+</p>
+<h2>Customisable Grid Rendering</h2>
+<p>
+The existing grid only supports rendering in an HTML table. This means that if you wanted to render a grid in a different format (for example, as an OpenXML Spreadsheet) it meant you needed to inherit from the Grid class, override several methods and then create a new helper. The new grid will allow a custom GridRenderer class to be provided in the grid definition. Rendering as an HTML table will still be the default behaviour. 
+</p>
+<h2>Separate Pagination Component</h2>
+<p>The current grid has built in support for paging. With the new grid, this will be moved into a separate component.</p>
+
+<h2>Sorting</h2>
+<p>Time permitting, the new grid will have support for sorting.</p>
+
+
+<p>In my next post I'll focus on the grid's Fluent Interface.</p>

@@ -1,0 +1,69 @@
+---
+layout: post
+title: "Using Mercurial with CodePlex and GitHub"
+category: git
+postId: 373
+---
+<p>For the last few months I've been using <a href="http://git-scm.com/">git</a> exclusively for source control. The learning curve was quite steep, but after a few weeks I was happily pushing, pulling and rebasing without a .svn folder in sight.</p>  <p>Recently, following the <a href="http://blogs.msdn.com/codeplex/archive/2010/01/22/codeplex-now-supporting-native-mercurial.aspx">CodePlex announcement</a>, I thought it'd also be a good idea to learn to use Mercurial.</p>  <h3>Differences between Git and Mercurial</h3>  <p>Coming to mercurial with some git knowledge was quite helpful - mercurial (like git) is a distributed source control system so many of the same concepts apply to both tools. The main difference is often in terminology and that git tends to expose more concepts to the end user. There's also a difference in tooling (more on that later).</p>  <p>Having played with mercurial for a bit, here are some observations:</p>  <h4>Git's branches seem more flexible</h4>  <p>With git, I can easily create a local branch, write some spike code and then discard the branch when I'm done. Alternatively, I can push a branch up to the remote repository when I want to share it with others. Mercurial branches are always pushed up to the remote repository and cannot be removed (although they can be marked as &quot;inactive&quot;). To achieve a similar functionality to git's local-only short term branches you need to use a <a href="http://mercurial.selenic.com/wiki/BookmarksExtension">bookmark</a> instead.</p>  <h4>Setting up an hg server on Windows is easier</h4>  <p>Setting up an ssh server on windows in order to host git is....somewhat painful. My colleage <a href="http://www.markembling.info">Mark Embling</a> configured our git server at work and detailed the process <a href="http://www.markembling.info/view/git-server-gitosis-and-cygwin-on-windows">in this blog post</a>. Setting up a mercurial server on windows is slightly easier - it involves <a href="http://www.jeremyskinner.co.uk/mercurial-on-iis7/">hosting the hgwebdir plugin in IIS</a> (or another webserver).</p>  <h4>Implicit rename tracking</h4>  <p>Git does implicit rename/copy tracking, while this is explicit with mercurial. This will take some getting used to...</p>  <p><strong>Update 19 Feb</strong> Mercurial does actually support implicit renames, it just isn't turned on by default. To enable it, <a href="http://hgtip.com/tips/advanced/2009-09-30-detecting-renames-automatically/">you can pass the --similarity argument to hg addremove</a>.</p>  <h4>The Index</h4>  <p>Git exposes the concept of the &quot;index&quot; or &quot;staging area&quot; where you add or remove files prior to a commit. In Mercurial, this is not exposed to the end user. In my opinion, Mercurial's approach is better here - I don't think I've ever run into a situation where I *needed* to see git's index.</p>  <h4>Windows Tooling</h4>  <p>Git support on windows is reasonably smooth these days, but isn't as smooth as mercurial. By far the easiest way to run git on windows is by using <a href="http://code.gooogle.com/p/msysgit">msysgit</a> which is built around MinGW (a GNU environment for windows) while Mercurial being written in python means is cross platform by its very nature.</p>  <p>The msysgit installer comes with a simple git gui and there is also the somewhat incomplete <a href="http://code.google.com/p/tortoisegit/">tortoisegit</a> however, I never really used these as I'm <a href="http://www.jeremyskinner.co.uk/2009/08/23/a-better-command-prompt/">a big fan of using the command line</a>.</p>  <p>That being said, I really like <a href="http://tortoisehg.bitbucket.org/">TortoiseHg</a> which is an all-in-one installer for Mercurial, Python and Windows GUI tools. Perhaps ironically, I don't actually use TortoiseHg's Windows Explorer integration (I've never been very keen on right-click context menus) but instead use TortoiseHg's command line support to open the appropriate gui tools directly from my console window. For example, if I type the following command into my console:</p>
+
+
+<div class="syntax"><div class="code"><pre class="dos" style="font-family:monospace;">hgtk log</pre></div></div>
+
+
+
+
+<p>...this will bring up TortoiseGit's log viewer for the current directory (which I find a much more useful view than the normal &quot;hg log&quot; output)</p>
+
+<p>I'm sure I'll encounter more differences in time, but these were the ones that were immediately noticable.</p>
+
+<h3>Using Mercurial to push to GitHub and CodePlex</h3>
+
+<p>A few weeks before CodePlex unveiled Mercurial support, I decided to move the <a href="http://fluentvalidation.codeplex.com">FluentValidation</a> source code to github to get away from the horror that is TFS+svnbridge. Now that CodePlex does support Mercurial I considered moving the source back again, but I don't want to lose the <a href="http://github.com/JeremySkinner/FluentValidation">FluentValidation repository on github</a> (it's gathered a nice little collection of followers). This is where <a href="http://hg-git.github.com/">hg-git</a> comes in.</p>
+
+<p><a href="http://hg-git.github.com/">Hg-git</a> is a plugin for mercurial that allows you to use mercurial push and pull from git repositories. This means I can work with hg locally and push up to both CodePlex and GitHub when I'm done.</p>
+
+<p>If you already have TortoiseHg installed then this is a very simple process (as it already comes with the necesary Python plugins). First, you clone the hg-git plugin locally:</p>
+
+
+<div class="syntax"><div class="code"><pre class="dos" style="font-family:monospace;"><span style="color: #b1b100; font-weight: bold;">cd</span> c:projects
+hg clone http://bitbucket.org/durin42/hg-git/</pre></div></div>
+
+
+
+
+<p>Next, you enable the extesion in your Mercurial.ini under the &quot;extensions&quot; section:</p>
+
+
+<div class="syntax"><div class="code"><pre class="ini" style="font-family:monospace;"><span style="color: #000066; font-weight:bold;"><span style="">&#91;</span>extensions<span style="">&#93;</span></span>
+<span style="color: #000099;">hggit</span> <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> C:projectshg-githggit</span>
+<span style="color: #000099;">bookmarks</span> <span style="color: #000066; font-weight:bold;">=</span></pre></div></div>
+
+
+
+
+<p>(note you also need the <a href="http://mercurial.selenic.com/wiki/BookmarksExtension">bookmarks</a> extension)</p>
+
+<p>At this point, you can now clone a git repository using hg. In this case, I cloned the FluentValidation git repository:</p>
+
+
+<div class="syntax"><div class="code"><pre class="dos" style="font-family:monospace;"><span style="color: #b1b100; font-weight: bold;">cd</span> c:projects
+hg clone git+ssh://git<span style="color: #33cc33;">@</span>github.com/JeremySkinner/FluentValidation.git</pre></div></div>
+
+
+
+
+<p>Note that I'm using the private ssh url.</p>
+
+<p>At this point I can now add a new &quot;path&quot; (equivalent of a git remote) to the hgrc file inside the .hg directory. The default will point to github, and I can add a new path for codeplex:</p>
+
+
+<div class="syntax"><div class="code"><pre class="ini" style="font-family:monospace;"><span style="color: #000066; font-weight:bold;"><span style="">&#91;</span>paths<span style="">&#93;</span></span>
+<span style="color: #000099;">default</span> <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> git+ssh://git@github.com/JeremySkinner/FluentValidation.git</span>
+<span style="color: #000099;">codeplex</span> <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> https://hg01.codeplex.com/FluentValidation</span></pre></div></div>
+
+
+
+
+<p>At this point, typing &quot;hg push codeplex&quot; will push my repository up to the mercurial repository on codeplex, while a normal &quot;hg push&quot; would push up to github. Sweet.</p>
+
+<p><strong>Update: 21 Feb 2010</strong> I’ve had some serious problems getting this approach to work reliably with two-way syncing. For now, I’ve decided to use CodePlex as a read-only mirror pulling changes from github.</p>

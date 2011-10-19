@@ -1,0 +1,22 @@
+#sidebar {
+  width: 200px;
+}
+
+/* Can't figure out why the dropdshadow is a weird size */  
+#header-container #header-footer {
+  display: none;
+}
+
+#profile .profile-bits {
+  margin: 0;
+  padding: 0;
+  float: none;
+}
+
+
+#profile img {
+}
+
+#sidebar h2 {
+  margin-top: 10px;
+}

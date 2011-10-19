@@ -1,0 +1,180 @@
+---
+layout: post
+title: "Lambda Abuse: The MvcContrib Hash"
+category: .NET
+postId: 255
+---
+<p>
+There's recently been a lot of discussion on <a href="http://stackoverflow.com/questions/1718037/abuse-of-c-lambda-expressions-or-syntax-brilliance">this post on StackOverflow</a> about the use of lambda expressions to build dictionaries as part of the <a href="http://www.jeremyskinner.co.uk/2009/02/22/rewriting-the-mvccontrib-grid-part-2-new-syntax/">MvcContrib grid</a>. 
+</p>
+<p>
+The Grid API allows you to define HTML attributes for a table by chaining a call to the 'Attributes' method as part of a grid definition:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model.<span style="color: #9900cc;">People</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Columns</span><span style="color: #006600; font-weight:bold;">&#40;</span>column <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Id</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">Name</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+     		column.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> x.<span style="color: #9900cc;">DateOfBirth</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+<span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span>
+.<span style="color: #9900cc;">Attributes</span><span style="color: #006600; font-weight:bold;">&#40;</span>style <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #cc0000;">&quot;width:100%&quot;</span>, cellpadding <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #800000;">0</span><span style="color: #006600; font-weight:bold;">&#41;</span>
+ <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+
+
+<p>
+This makes use of the <a href="http://mvccontrib.codeplex.com/sourcecontrol/network/Show?projectName=MVCContrib&changeSetId=877a66c13756#src%2fMVCContrib%2fHash.cs">MvcContrib.Hash class</a> to construct an IDictionary from lambda expressions. So the following Hash definiton...:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">var hash <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> Hash<span style="color: #000000;">&#40;</span>foo <span style="color: #008000;">=&gt;</span> <span style="color: #666666;">&quot;bar&quot;</span>, baz <span style="color: #008000;">=&gt;</span> <span style="color: #666666;">&quot;blah&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+<p>...is the equivalent of:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">var hash <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> Dictionary<span style="color: #008000;">&lt;</span><span style="color: #FF0000;">string</span>, <span style="color: #FF0000;">object</span><span style="color: #008000;">&gt;</span> 
+<span style="color: #000000;">&#123;</span>
+   <span style="color: #000000;">&#123;</span> <span style="color: #666666;">&quot;foo&quot;</span>, <span style="color: #666666;">&quot;bar&quot;</span> <span style="color: #000000;">&#125;</span>,
+   <span style="color: #000000;">&#123;</span> <span style="color: #666666;">&quot;baz&quot;</span>, <span style="color: #666666;">&quot;blah&quot;</span> <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+<p>
+Internally, this is achieved by using a technique I first saw on <a href="http://blog.bittercoder.com/PermaLink,guid,206e64d1-29ae-4362-874b-83f5b103727f.aspx">Alex Henderson's blog</a>. By taking an array of delegates, it is possible to capture the compile-time variable names used by the lambda expressions and use them as keys for the dictionary. 
+</p>
+<p>
+The responses to this approach have been quite polarized. There has been lots of positive feedback on twitter...
+</p>
+<blockquote>
+"@JeremySkinner I like it, no problem for me, infact I'll apply this technique where ever I can from now one forward :)" (from <a href="http://twitter.com/marknijhof">Mark Nijhof</a>)
+</blockquote>
+<blockquote>
+"@JeremySkinner the lambda abuse is awesome, very ruby symbols like, and pushing the language envelope." (from <a href="http://twitter.com/AdamTybor">Adam Tybor</a>)
+</blockquote>
+<p>
+...and also in the blogosphere (eg <a href="http://odetocode.com/Blogs/scott/archive/2009/11/30/your-abomination-is-my-clever-hack.aspx">here</a> and <a href="http://www.corebvba.be/blog/post/Rant-Your-abomination-is-my-clever-hack.aspx">here</a>) as well as on the StackOverflow post.
+</p>
+<p>
+There has also been a lot of negative feedback:
+</p>
+<blockquote>
+"I hardly ever came across this kind of usage. I think it's inappropriate"
+</blockquote>
+<blockquote>
+"I find that odd not so much because of the name, but because the lambda is unnecessary; it could use an anonymous-type and be more flexible"
+</blockquote>
+<blockquote>
+"This is horrible on more than one level. And no, this is nothing like Ruby its an abuse of C# and .Net. "
+</blockquote>
+<blockquote>
+"It's counter-intuitive, there is no way of just looking at the code to figure out what it does."
+</blockquote>
+
+<p>
+Interestingly, some of the most negative comments were from <a href="http://blogs.msdn.com/ericlippert/">Eric Lippert</a> on the C# compiler team:
+</p>
+<blockquote>
+"This is horrid in so many ways."
+</blockquote>
+<blockquote>
+"I just asked Anders (and the rest of the design team) what they thought. Let's just say the results would not be printable in a family-friendly newspaper"
+</blockquote>
+
+<p>
+I thought Eric's response was possibly a little harsh, but wanted to try and address and explain some of the issues here:
+</p>
+
+<h2>Issue #1: This is not interop friendly!</h2>
+<p>
+One of the issues raised was that this is <a href="http://stackoverflow.com/questions/1718037/abuse-of-c-lambda-expressions-or-syntax-brilliance/1718088#1718088">not interop friendly</a>. If, for example, you wanted to build a grid using F# (or possibly another CLR language) then this approach would not work as it is dependent on the C# compiler. This is a good point and is very true. 
+</p>
+<p>
+The thing I want to point out here is that the syntax is <strong>completely optional</strong>. This particular overload for the 'Attributes' method on the grid is an extension method for convenience when using C#. The main implementation for this method takes an IDictionary. If you don't like the abusive-lambda approach (or you can't use it from another language) then you can use the 'regular' overload instead:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">.<span style="color: #0000FF;">Attributes</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> Dictionary<span style="color: #008000;">&lt;</span><span style="color: #FF0000;">string</span>, <span style="color: #FF0000;">object</span><span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span> <span style="color: #000000;">&#123;</span> <span style="color: #666666;">&quot;style&quot;</span>, <span style="color: #666666;">&quot;width:100%&quot;</span> <span style="color: #000000;">&#125;</span>, <span style="color: #000000;">&#123;</span> <span style="color: #666666;">&quot;cellpadding&quot;</span>, <span style="color: #FF0000;">0</span> <span style="color: #000000;">&#125;</span> <span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span></pre></div></div>
+
+
+
+
+<p>
+The abusive-lambdas are merely a preference - I happen to like it as it saves me some keystrokes. If you don't like it, don't use it.
+</p>
+
+<h2>Issue #2: This is unintuitive and not intellisense-friendly</h2>
+<p>
+From a readability perspective, I do not agree that this is unintuitive. If you saw "Attributes(style =&gt; "width:100%", cellpadding =&gt; 0)" in a grid definition then I think it's pretty obvious what's going on. It even looks like HTML attributes (kinda). 
+</p>
+<p>
+From an Intellisense perspective, I completely agree. If you see the following method signature, it is not immediately obvious what's going on:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> IGridWithOptions<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> Attributes<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> IGridWithOptions<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> grid, <span style="color: #0600FF;">params</span> Func<span style="color: #008000;">&lt;</span><span style="color: #FF0000;">object</span>, <span style="color: #FF0000;">object</span><span style="color: #008000;">&gt;</span><span style="color: #000000;">&#91;</span><span style="color: #000000;">&#93;</span> hash<span style="color: #000000;">&#41;</span></pre></div></div>
+
+
+
+<p>
+But hold on a second...let's compare this to the approach that the ASP.NET MVC Framework uses for all its built-in HTML helpers:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> MvcHtmlString TextBox<span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> HtmlHelper htmlHelper, <span style="color: #FF0000;">string</span> name, <span style="color: #FF0000;">object</span> value, <span style="color: #FF0000;">object</span> htmlAttributes<span style="color: #000000;">&#41;</span></pre></div></div>
+
+
+
+<p>
+Notice that "object htmlAttributes" at the end? That allows you to specify an anonymous type containing HTML attributes:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">TextBox</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;foo&quot;</span>, <span style="color: #cc0000;">&quot;bar&quot;</span>, <span style="color: #0000ff; font-weight: bold;">new</span><span style="color: #006600; font-weight:bold;">&#123;</span> style <span style="color: #006600; font-weight: bold;">=</span> <span style="color: #cc0000;">&quot;width:100%&quot;</span>, <span style="color: #006600; font-weight: bold;">@</span><span style="color: #0000ff; font-weight: bold;">class</span><span style="color: #006600; font-weight: bold;">=</span><span style="color: #cc0000;">&quot;foo&quot;</span> <span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span></pre></div></div>
+
+
+
+<p>
+This is <strong>just as opaque as using abusive lambdas.</strong> In fact, I'd aruge that it's *more* opaque because the htmlAttributes parameter is defined as type object. This means you could accidentally pass *anything* in this parameter (eg a string) and the compiler would not complain. I have done this on many occasions and I find it very frustrating. At least with a parameter of type Func&lt;object, object&gt;[] you can't accidentally pass in a string. (Much like the MvcContrib approach, ASP.NET MVC's helpers also have overloads that take an IDictionary if you prefer).
+</p>
+
+<h2>Issue #3: You can achieve the same result with an anonymous type:</h2>
+<p>
+I don't believe that the Hash is really any worse than the anonymous type. In fact, in some ways I think the use of an anonymous type is worse (see my point above regarding opacity)
+</p>
+<h2>Issue #4: Performance implications!</h2>
+<p>
+There seems to be some misunderstanding around the use of the lambda syntax. On the one hand you can use a lambda to define an expression tree which can then be parsed (this is how LINQ to SQL works - the expression tree is then converted to SQL). These expressions can then be compiled to a delegate and invoked which is an expensive operation. However, lambdas can also be used for anonymous methods. This is essentially syntactic sugar over a standard .NET delegate and is an improvement over C# 2's <a href="http://msdn.microsoft.com/en-us/library/0yw3tz5k%28VS.80%29.aspx">anonymous delegate syntax</a>. </p>
+<p>
+The MvcContrib uses the latter approach to do its work. This way, there is no overhead for compiling the expressions. In fact, there is very little overhead versus using the standard Dictionary.Add method. Alex Henderson talks more about the different approaches for doing this <a href="http://blog.bittercoder.com/PermaLink,guid,206e64d1-29ae-4362-874b-83f5b103727f.aspx">on his blog</a>, but these were the results of his benchmark for 10000 calls:
+</p>
+<ul>
+<li>Using Dictionary.Add: 10.0144ms</li>
+<li>Using lambdas with expression compilation: 9713.968ms (240.3456ms with constants) </li>
+<li><strong>Using lambdas as delegates: 30.0432ms</strong></strong></li>
+</ul>
+<h2>Issue #5: Why not use method chaining?</h2>
+<p>
+One suggestion was to chain multiple calls to 'Attribute':
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">.<span style="color: #0000FF;">Attribute</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;style&quot;</span>, <span style="color: #666666;">&quot;width:100%&quot;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Attribute</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;cellpadding&quot;</span>, <span style="color: #666666;">&quot;0&quot;</span><span style="color: #000000;">&#41;</span></pre></div></div>
+
+
+
+<p>
+This definitely works, but the whole reason why I decided to use the Hash was because I want to mimimize the amount of typing (my fingers tire easily) and making multiple calls to 'Attribute' is rather verbose. 
+</p>
+<h2>And finally...</h2>
+<p>
+In the end, this is really just down to personal preference:</p>
+<ul>
+<li> I do not like C#'s dictionary initializers - I think they're too verbose</li>
+<li>I do not like the use of anonymous types as dictionaries as they require you to take parameters of type "object"</li>
+</ul>
+<p>The Abusive Lambda Pattern (I think that's what I'll call this) is just something I happen to like, but if you don't like it then you certainly don't have to use it.</p>
+<p>Perhaps Eric and the C# team would like to give us a more succinct collection initializer for Dictionaries in C#5? :) </p>

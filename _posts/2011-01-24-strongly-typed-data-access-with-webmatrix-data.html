@@ -1,0 +1,147 @@
+---
+layout: post
+title: "Strongly-typed data access with WebMatrix.Data"
+category: .NET
+postId: 626
+---
+<p>One of the features of the new Microsoft Web Stack is WebMatrix.Data. This is a small data-access library that makes heavy use of dynamic objects to access database tables:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:f42154d5-fb8e-48dc-9fd2-f3b214636557" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">using</span><span style="color: #000000;">&#40;</span>var db <span style="color: #008000;">=</span> Database.<span style="color: #0000FF;">Open</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;MyDatabase&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+&nbsp;
+   var users <span style="color: #008000;">=</span> db.<span style="color: #0000FF;">Query</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;select Id, Surname, Forename from Users&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+   <span style="color: #0600FF;">foreach</span><span style="color: #000000;">&#40;</span>var user <span style="color: #0600FF;">in</span> users<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+     Console.<span style="color: #0000FF;">WriteLine</span><span style="color: #000000;">&#40;</span>user.<span style="color: #0000FF;">Surname</span> <span style="color: #008000;">+</span> <span style="color: #666666;">&quot;, &quot;</span> <span style="color: #008000;">+</span> user.<span style="color: #0000FF;">Forename</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>In this example, the Query method returns an IEnumerable&lt;dynamic&gt; and we access the Id and Name properties of on each user. These properties haven’t been defined anywhere – they’re inferred from the column names in the database.</p>
+
+<p>While this approach works well, it can become painful if you want to do anything even slightly more complex such as adding additional behaviour to the data objects. For example, If we wanted to have a DisplayName property that concatenates the Forename and the Surname then we can’t define a new property on the object. </p>
+
+<p>To get around this I quickly put together a strongly-typed wrapper that allows you to project WebMatrix.Data queries into strongly typed objects. So, if we define an object like this:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:adef3684-e091-4dda-b345-33a012faf3a7" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> User <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">int</span> Id <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+  <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> Surname <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+  <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> Forename <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> FullName <span style="color: #000000;">&#123;</span>
+    get <span style="color: #000000;">&#123;</span> <span style="color: #0600FF;">return</span> Surname <span style="color: #008000;">+</span> <span style="color: #666666;">&quot;, &quot;</span> <span style="color: #008000;">+</span> Forename<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+  <span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>…we can use it like this by using a strongly-typed extension method for Query:</p>
+
+<p>
+  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:1b334ee3-3549-4010-a6e4-e991ed723ead" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">using</span><span style="color: #000000;">&#40;</span>var db <span style="color: #008000;">=</span> Database.<span style="color: #0000FF;">Open</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;MyDatabase&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+&nbsp;
+   var users <span style="color: #008000;">=</span> db.<span style="color: #0000FF;">Query</span><span style="color: #008000;">&lt;</span>User<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;select Id, Surname, Forename from Users&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+   <span style="color: #0600FF;">foreach</span><span style="color: #000000;">&#40;</span>var user <span style="color: #0600FF;">in</span> users<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+     Console.<span style="color: #0000FF;">WriteLine</span><span style="color: #000000;">&#40;</span>user.<span style="color: #0000FF;">FullName</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+   <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+</p>
+
+<p>The Query&lt;T&gt; method is a simple extension method that delegates the work to a mapper:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:4cb92465-75b6-4c26-ba64-c803ec4da021" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #FF0000;">class</span> DataExtensions <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> IEnumerable<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> Query<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> Database db, <span style="color: #FF0000;">string</span> commandText, <span style="color: #0600FF;">params</span> <span style="color: #FF0000;">object</span><span style="color: #000000;">&#91;</span><span style="color: #000000;">&#93;</span> args<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var queryResults <span style="color: #008000;">=</span> db.<span style="color: #0000FF;">Query</span><span style="color: #000000;">&#40;</span>commandText, args<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		var mapper <span style="color: #008000;">=</span> Mapper<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span>.<span style="color: #0000FF;">Create</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">return</span> <span style="color: #000000;">&#40;</span>from DynamicRecord record <span style="color: #0600FF;">in</span> queryResults select mapper.<span style="color: #0000FF;">Map</span><span style="color: #000000;">&#40;</span>record<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">ToList</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Most of the work is done by the Mapper. This class constructs and caches delegates for the specified type’s property setters:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:5dfc2c7c-eb85-4f87-a09f-27d7be2c8d40" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> Mapper<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">private</span> Func<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> factory<span style="color: #008000;">;</span>
+	<span style="color: #0600FF;">private</span> Dictionary<span style="color: #008000;">&lt;</span><span style="color: #FF0000;">string</span>, Action<span style="color: #008000;">&lt;</span>T, <span style="color: #FF0000;">object</span><span style="color: #008000;">&gt;&gt;</span> setters <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> Dictionary<span style="color: #008000;">&lt;</span><span style="color: #FF0000;">string</span>, Action<span style="color: #008000;">&lt;</span>T, <span style="color: #FF0000;">object</span><span style="color: #008000;">&gt;&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">static</span> Lazy<span style="color: #008000;">&lt;</span>Mapper<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> _instance <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> Lazy<span style="color: #008000;">&lt;</span>Mapper<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #008000;">=&gt;</span> <span style="color: #008000;">new</span> Mapper<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> Mapper<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> Create<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> _instance.<span style="color: #0000FF;">Value</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">private</span> Mapper<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		factory <span style="color: #008000;">=</span> CreateActivatorDelegate<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #0600FF;">foreach</span> <span style="color: #000000;">&#40;</span>var property <span style="color: #0600FF;">in</span> <span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>T<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GetProperties</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>property.<span style="color: #0000FF;">CanWrite</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+				setters<span style="color: #000000;">&#91;</span>property.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#93;</span> <span style="color: #008000;">=</span> BuildSetterDelegate<span style="color: #000000;">&#40;</span>property<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+			<span style="color: #000000;">&#125;</span>
+		<span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> T Map<span style="color: #000000;">&#40;</span>DynamicRecord record<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var instance <span style="color: #008000;">=</span> factory<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #0600FF;">foreach</span><span style="color: #000000;">&#40;</span>var column <span style="color: #0600FF;">in</span> record.<span style="color: #0000FF;">Columns</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			Action<span style="color: #008000;">&lt;</span>T, <span style="color: #FF0000;">object</span><span style="color: #008000;">&gt;</span> setter<span style="color: #008000;">;</span>
+&nbsp;
+			<span style="color: #0600FF;">if</span><span style="color: #000000;">&#40;</span>setters.<span style="color: #0000FF;">TryGetValue</span><span style="color: #000000;">&#40;</span>column, <span style="color: #0600FF;">out</span> setter<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+				setter<span style="color: #000000;">&#40;</span>instance, record<span style="color: #000000;">&#91;</span>column<span style="color: #000000;">&#93;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+			<span style="color: #000000;">&#125;</span>
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+		<span style="color: #0600FF;">return</span> instance<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+&nbsp;
+	<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">static</span> Func<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> CreateActivatorDelegate<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> CreateActivatorDelegate<span style="color: #000000;">&#40;</span><span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>T<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GetConstructor</span><span style="color: #000000;">&#40;</span>Type.<span style="color: #0000FF;">EmptyTypes</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">static</span> Func<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> CreateActivatorDelegate<span style="color: #000000;">&#40;</span>ConstructorInfo constructor<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> Expression.<span style="color: #0000FF;">Lambda</span><span style="color: #008000;">&lt;</span>Func<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span><span style="color: #000000;">&#40;</span>Expression.<span style="color: #008000;">New</span><span style="color: #000000;">&#40;</span>constructor<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Compile</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">static</span> Action<span style="color: #008000;">&lt;</span>T, <span style="color: #FF0000;">object</span><span style="color: #008000;">&gt;</span> BuildSetterDelegate<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+&nbsp;
+		var instance <span style="color: #008000;">=</span> Expression.<span style="color: #0000FF;">Parameter</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>T<span style="color: #000000;">&#41;</span>, <span style="color: #666666;">&quot;x&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		var argument <span style="color: #008000;">=</span> Expression.<span style="color: #0000FF;">Parameter</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">object</span><span style="color: #000000;">&#41;</span>, <span style="color: #666666;">&quot;v&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		var setterCall <span style="color: #008000;">=</span> Expression.<span style="color: #0000FF;">Call</span><span style="color: #000000;">&#40;</span>
+			instance,
+			prop.<span style="color: #0000FF;">GetSetMethod</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">true</span><span style="color: #000000;">&#41;</span>,
+			Expression.<span style="color: #0000FF;">Convert</span><span style="color: #000000;">&#40;</span>argument, prop.<span style="color: #0000FF;">PropertyType</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+&nbsp;
+		<span style="color: #0600FF;">return</span> <span style="color: #000000;">&#40;</span>Action<span style="color: #008000;">&lt;</span>T, <span style="color: #FF0000;">object</span><span style="color: #008000;">&gt;</span><span style="color: #000000;">&#41;</span>Expression.<span style="color: #0000FF;">Lambda</span><span style="color: #000000;">&#40;</span>setterCall, instance, argument<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Compile</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Note that this is just a prototype – there isn’t any error handling in the mapping code.</p>
+
+<p>While WebMatrix.Data isn’t a substitute for a full O/RM tool, it’s certainly useful for simple scenarios where you just need to quickly access data, and hopefully strongly-typed extensions like these can make it a little more useful in some scenarios.</p>

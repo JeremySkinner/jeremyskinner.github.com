@@ -1,0 +1,66 @@
+---
+layout: post
+title: "Helpers for the MS MVC Framework"
+category: .NET
+postId: 22
+---
+<p>Go to the bottom of this post for the download.</p>
+
+<p>There's <a href="http://www.codeplex.com/MVCContrib/WorkItem/View.aspx?WorkItemId=972">a discussion</a> going on at the MvcContrib site about including UI Helpers in the MvcContrib project. The discussion seems to be centralising around the issue of whether helpers should be implemented through extension methods (the approach the MVCToolkit takes), regular static methods or instance methods.</p>
+<p>
+My preference is for instance methods on dedicated helper classes. This approach is the most flexible as it allows you to:
+<ul>
+ <li>Replace an entire helper with a custom implementation</li>
+ <li>Easily share services between all helpers</li>
+</ul>
+</p>
+<p>
+ I decided to put together a sample application that uses an IoC container (<a href="http://www.castleproject.org/container/index.html">Windsor</a>) for creating helpers. The sample project includes:
+
+<ul>
+  <li>FormHelper and UrlHelper implementations that are created using the MvcContrib DependencyResolver.</li>
+  <li>Services for generating URLs (IUrlBuilder) and for automatic data binding (IDataBinder) </li>
+  <li>Delegate-based rendering (see <a href="http://abombss.com/blog/2007/12/28/ms-mvc-gets-blocks-from-rails/">this post</a> on Adam Tybor's blog for more info).</li>
+  <li> Using IDictionaries for specifying HTML attributes</li>
+  <li>Methods for generating text fields, text areas, hidden fields, forms and hyperlinks</li>
+</ul>
+</p>
+<p>
+Some sample code:
+</p>
+<pre style="overflow:scroll">
+&lt;% Form.For("person", new Hash(action =&gt; "Save"), form =&gt; { %&gt;
+	Surname: &lt;%= form.TextField("Surname", new Hash(style =&gt; "width: 200px")) %&gt;
+	&lt;br /&gt;
+	Forename: &lt;%= form.TextField("Forename", new Hash(style =&gt; "width: 200px"))%&gt;
+	&lt;br /&gt;&lt;br /&gt;
+	&lt;%= form.HiddenField("id") %&gt;
+	&lt;%= form.Submit() %&gt;
+&lt;% }); %&gt;
+</pre>
+<p>Which generates...</p>
+<pre style="overflow:scroll">
+&lt;form method="post" action="/Home/Save"&gt;
+	Surname: &lt;input type="text" id="person_Surname" name="person.Surname" value="Smith" style="width: 200px" /&gt;
+	&lt;br /&gt;
+	Forename: &lt;input type="text" id="person_Forename" name="person.Forename" value="Jane" style="width: 200px" /&gt;
+	&lt;br /&gt;&lt;br /&gt;
+	&lt;input type="hidden" id="person_id" name="person.id" value="2" /&gt;
+	&lt;input type="submit" value="Submit" /&gt;
+&lt;/form&gt;
+</pre>
+<p>
+Note: To run the sample you will need the <a href="http://www.asp.net/downloads/3.5-extensions/">.NET 3.5 Extensions CTP</a> installed.
+</p>
+<p>
+Disclaimers:
+
+<ul>
+ <li>The DefaultDataBinder implementation uses code from Castle's <a href="http://castleproject.org/monorail/">MonoRail</a></li>
+ <li>The DefaultUrlBuilder uses code from Rob Conery's <a href="http://blog.wekeroad.com/2007/12/05/aspnet-mvc-preview-using-the-mvc-ui-helpers/">MvcToolkit</a></li>
+<li>The Hash class is inspired by <a href="http://blechie.com/WPierce/archive/2007/12/30/Updated-A-Better-Dictionary-Initializer.aspx">this post</a> on Bill Pierce's blog.
+</ul>
+</p>
+<p>
+The download can be <a href="http://cid-4a31ad0f2a6040f3.skydrive.live.com/self.aspx/Public/MvcHelpers.zip">found here</a>.
+</p>

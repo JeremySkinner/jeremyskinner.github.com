@@ -1,0 +1,302 @@
+---
+layout: post
+title: "Using FluentValidation with ASP.NET MVC Opinionated Input Builders"
+category: .NET
+postId: 136
+---
+<p>
+I've been following Eric Hexter's series on <a href="http://www.lostechies.com/blogs/hex/archive/2009/06/09/opinionated-input-builders-for-asp-net-mvc-using-partials-part-i.aspx">using opinionated input builders with ASP.NET MVC</a> and wanted to see whether it would be possible to use his InputBuilder code together with <a href="http://fluentvalidation.codeplex.com">FluentValidation</a>.
+</p>
+<p>
+In Eric's example, he has a class called <strong>SampleModel</strong> whose properties are decorated by several attributes:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> SampleModel
+<span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> Guid Guid <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #000000;">&#91;</span>Required<span style="color: #000000;">&#93;</span>
+   <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> Name <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #000000;">&#91;</span>Required<span style="color: #000000;">&#93;</span>
+  <span style="color: #000000;">&#91;</span>Label<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Number of Types&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span>
+  <span style="color: #000000;">&#91;</span>PartialView<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;RadioButtons&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span>
+  <span style="color: #0600FF;">public</span> NumberOfTypeEnum EnumAsRadioButton <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> NumberOfTypeEnum <span style="color: #FF0000;">Enum</span> <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #000000;">&#91;</span>Range<span style="color: #000000;">&#40;</span><span style="color: #FF0000;">3</span>, <span style="color: #FF0000;">15</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span>
+  <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">int</span> IntegerRangeValue <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #000000;">&#91;</span>Example<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;mm/dd/yyyy hh:mm PM&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span>
+  <span style="color: #0600FF;">public</span> DateTime TimeStamp <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #000000;">&#91;</span>DataType<span style="color: #000000;">&#40;</span>DataType.<span style="color: #0000FF;">MultilineText</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span>
+  <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> Html <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+&nbsp;
+  <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">bool</span> IsNeeded <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+These properties on this object are then rendered in the view by using the strongly-typed <strong>Input</strong> extension:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #008000;">&lt;%=</span>Html.<span style="color: #0000FF;">Input</span><span style="color: #000000;">&#40;</span>c <span style="color: #008000;">=&gt;</span> c.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">%&gt;</span>
+<span style="color: #008000;">&lt;%=</span>Html.<span style="color: #0000FF;">Input</span><span style="color: #000000;">&#40;</span>c <span style="color: #008000;">=&gt;</span> c.<span style="color: #0000FF;">TimeStamp</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">%&gt;</span>
+<span style="color: #008000;">&lt;%=</span>Html.<span style="color: #0000FF;">Input</span><span style="color: #000000;">&#40;</span>c <span style="color: #008000;">=&gt;</span> c.<span style="color: #0000FF;">Html</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">%&gt;</span>
+...<span style="color: #0000FF;">etc</span>...</pre></div></div>
+
+
+
+<p>The attributes that decorate the properties drive the UI, so for example decorating the Html property with [DataType(DataType.MultilineText)] would cause a multi-line textbox to be rendered.</p>
+<p>
+Rather than using attributes, my aim was to configure the InputBuilders by storing metadata alongside validation information in a Validator class.
+</p>
+<p>
+Out of the box, FluentValidation supports several validator types. Some of these map nicely to the DataAnnotations attributes used by the SampleModel. For example, the [Required] attribute maps nicely to the NotNull and NotEmpty validators, and the [Range] attribute works nicely with the GreaterThan/LessThan validators:   
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> SampleModelValidator <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>SampleModel<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> SampleModelValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotEmpty</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+    RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">IntegerRangeValue</span><span style="color: #000000;">&#41;</span>
+      .<span style="color: #0000FF;">GreaterThanOrEqualTo</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">3</span><span style="color: #000000;">&#41;</span>
+      .<span style="color: #0000FF;">LessThanOrEqualTo</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">15</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+However, there are no equivalents for the metadata attributes such as [PartialView], [Example] or [DataType], but these can easily be built by constructing some 'fake' validators (these validators won't actually perform any validation - they will simply hold metadata).
+</p>
+<p>
+For example, to build an equivalent for the DataTypeAttribute, we can create a property validator like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">interface</span> IDataTypeMetaData <span style="color: #000000;">&#123;</span>
+	DataType DataType <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> DataTypeValidator<span style="color: #008000;">&lt;</span>T, TProperty<span style="color: #008000;">&gt;</span> <span style="color: #008000;">:</span> IPropertyValidator<span style="color: #008000;">&lt;</span>T, TProperty<span style="color: #008000;">&gt;</span>, IDataTypeMetaData <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">private</span> DataType datatype<span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> DataTypeValidator<span style="color: #000000;">&#40;</span>DataType datatype<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">datatype</span> <span style="color: #008000;">=</span> datatype<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> PropertyValidatorResult Validate<span style="color: #000000;">&#40;</span>PropertyValidatorContext<span style="color: #008000;">&lt;</span>T, TProperty<span style="color: #008000;">&gt;</span> context<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> PropertyValidatorResult.<span style="color: #0000FF;">Success</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> DataType DataType <span style="color: #000000;">&#123;</span>
+		get <span style="color: #000000;">&#123;</span> <span style="color: #0600FF;">return</span> datatype<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Note that we declare both a validator to hold the DataType information and also a non-generic interface (which we'll use later to obtain the metadata). The Validate method is a no-op, always reporting success (as we don't actually want to perform any validation).
+</p>
+<p>
+Next, we can declare an extension method that allows this to be used from within our SampleModelValidator:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #FF0000;">class</span> ValidatorExtensions <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> IRuleBuilderOptions<span style="color: #008000;">&lt;</span>T, TProperty<span style="color: #008000;">&gt;</span> DataType<span style="color: #008000;">&lt;</span>T, TProperty<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> IRuleBuilder<span style="color: #008000;">&lt;</span>T, TProperty<span style="color: #008000;">&gt;</span> ruleBuilder, DataType dataType<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> ruleBuilder.<span style="color: #0000FF;">SetValidator</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> DataTypeValidator<span style="color: #008000;">&lt;</span>T, TProperty<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span>dataType<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+After using this approach to create equivalents for all the other metadata attributes, our SampleModelValidator now looks like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> SampleModelValidator <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>SampleModel<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> SampleModelValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Name</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotEmpty</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">EnumAsRadioButton</span><span style="color: #000000;">&#41;</span>
+			.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+			.<span style="color: #0000FF;">RenderUsing</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;RadioButtons&quot;</span><span style="color: #000000;">&#41;</span>
+			.<span style="color: #0000FF;">WithName</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Number of Types&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">IntegerRangeValue</span><span style="color: #000000;">&#41;</span>
+			.<span style="color: #0000FF;">GreaterThanOrEqualTo</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">3</span><span style="color: #000000;">&#41;</span>
+			.<span style="color: #0000FF;">LessThanOrEqualTo</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">15</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">TimeStamp</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Example</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;mm/dd/yyyy hh:mm PM&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Html</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">DataType</span><span style="color: #000000;">&#40;</span>DataType.<span style="color: #0000FF;">MultilineText</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+The next stage is to create a custom <strong>ValidatorDescriptor</strong>. The default ValidatorDescriptor doesn't do very much so we'll need to inherit from it and create some additional methods to retrieve the information needed by the InputBuilder:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">using</span> <span style="color: #008080;">System.Collections.Generic</span><span style="color: #008000;">;</span>
+<span style="color: #0600FF;">using</span> <span style="color: #008080;">System.Linq</span><span style="color: #008000;">;</span>
+<span style="color: #0600FF;">using</span> <span style="color: #008080;">System.Reflection</span><span style="color: #008000;">;</span>
+<span style="color: #0600FF;">using</span> <span style="color: #008080;">FluentValidation</span><span style="color: #008000;">;</span>
+<span style="color: #0600FF;">using</span> <span style="color: #008080;">FluentValidation.Internal</span><span style="color: #008000;">;</span>
+<span style="color: #0600FF;">using</span> <span style="color: #008080;">FluentValidation.Validators</span><span style="color: #008000;">;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">interface</span> ICustomValidatorDescriptor <span style="color: #000000;">&#123;</span>
+	<span style="color: #FF0000;">string</span> GetExample<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #FF0000;">string</span> GetLabel<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #FF0000;">string</span> GetPartialName<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #FF0000;">bool</span> GetIsRequired<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> CustomValidatorDescriptor<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> <span style="color: #008000;">:</span> ValidatorDescriptor<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span>, ICustomValidatorDescriptor <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> CustomValidatorDescriptor<span style="color: #000000;">&#40;</span>IEnumerable<span style="color: #008000;">&lt;</span>IValidationRule<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span> ruleBuilders<span style="color: #000000;">&#41;</span> <span style="color: #008000;">:</span> <span style="color: #0600FF;">base</span><span style="color: #000000;">&#40;</span>ruleBuilders<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> GetExample<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> Rules.<span style="color: #0000FF;">OfType</span><span style="color: #008000;">&lt;</span>ISimplePropertyRule<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+		       	.<span style="color: #0000FF;">Where</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Member</span> <span style="color: #008000;">==</span> prop<span style="color: #000000;">&#41;</span>
+		       	.<span style="color: #0000FF;">Select</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Validator</span><span style="color: #000000;">&#41;</span>
+		       	.<span style="color: #0000FF;">OfType</span><span style="color: #008000;">&lt;</span>IExampleMetaData<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+		       	.<span style="color: #0000FF;">Select</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Example</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">FirstOrDefault</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #008000;">??</span> <span style="color: #FF0000;">string</span>.<span style="color: #0000FF;">Empty</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> GetLabel<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> Rules.<span style="color: #0000FF;">OfType</span><span style="color: #008000;">&lt;</span>IPropertyRule<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+				.<span style="color: #0000FF;">Where</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Member</span> <span style="color: #008000;">==</span> prop<span style="color: #000000;">&#41;</span>
+				.<span style="color: #0000FF;">Select</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">PropertyDescription</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">FirstOrDefault</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> GetPartialName<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> Rules.<span style="color: #0000FF;">OfType</span><span style="color: #008000;">&lt;</span>ISimplePropertyRule<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+				.<span style="color: #0000FF;">Where</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Member</span> <span style="color: #008000;">==</span> prop<span style="color: #000000;">&#41;</span>
+				.<span style="color: #0000FF;">Select</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Validator</span><span style="color: #000000;">&#41;</span>
+				.<span style="color: #0000FF;">OfType</span><span style="color: #008000;">&lt;</span>IRenderUsingMetaData<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+				.<span style="color: #0000FF;">Select</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">ViewName</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">FirstOrDefault</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">bool</span> GetIsRequired<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> Rules.<span style="color: #0000FF;">OfType</span><span style="color: #008000;">&lt;</span>ISimplePropertyRule<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+			.<span style="color: #0000FF;">Where</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Member</span> <span style="color: #008000;">==</span> prop<span style="color: #000000;">&#41;</span>
+			.<span style="color: #0000FF;">Select</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Validator</span><span style="color: #000000;">&#41;</span>
+			.<span style="color: #0000FF;">Where</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x <span style="color: #008000;">is</span> INotNullValidator <span style="color: #008000;">||</span> x <span style="color: #008000;">is</span> INotEmptyValidator<span style="color: #000000;">&#41;</span>
+			.<span style="color: #0000FF;">Any</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+The ValidatorDescriptor accepts in its constructor a collection of IValidationRule objects that represent the rules configured in the SampleModelValidator. Using some Linq magic we can retrieve the metadata information that we stored inside the validation rules. We also have to override the <strong>CreateDescriptor</strong> method in our SampleModelValidator to return an instance of our custom ValidatorDescriptor, rather than the default:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> IValidatorDescriptor<span style="color: #008000;">&lt;</span>SampleModel<span style="color: #008000;">&gt;</span> CreateDescriptor<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">return</span> <span style="color: #008000;">new</span> CustomValidatorDescriptor<span style="color: #008000;">&lt;</span>SampleModel<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+The next stage is to override the InputBuilder's default conventions so that it will use our SampleModelValidator to obtain its metadata. To do this, we create a <strong>FluentValidationConventions</strong> class that accepts a ValidatorFactory in its constructor and contains methods that delegate to our CustomValidatorDescriptor:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> FluentValidationConventions <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">private</span> IValidatorFactory validatorFactory<span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> FluentValidationConventions<span style="color: #000000;">&#40;</span>IValidatorFactory factory<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">validatorFactory</span> <span style="color: #008000;">=</span> factory<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">private</span> ICustomValidatorDescriptor GetDescriptor<span style="color: #000000;">&#40;</span>Type type<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var validator <span style="color: #008000;">=</span> validatorFactory.<span style="color: #0000FF;">GetValidator</span><span style="color: #000000;">&#40;</span>type<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">return</span> <span style="color: #000000;">&#40;</span>ICustomValidatorDescriptor<span style="color: #000000;">&#41;</span> validator.<span style="color: #0000FF;">CreateDescriptor</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> ExampleConvention<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> GetDescriptor<span style="color: #000000;">&#40;</span>prop.<span style="color: #0000FF;">ReflectedType</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GetExample</span><span style="color: #000000;">&#40;</span>prop<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> LabelConvention<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> GetDescriptor<span style="color: #000000;">&#40;</span>prop.<span style="color: #0000FF;">ReflectedType</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GetLabel</span><span style="color: #000000;">&#40;</span>prop<span style="color: #000000;">&#41;</span> <span style="color: #008000;">??</span> DefaultConventions.<span style="color: #0000FF;">LabelForProperty</span><span style="color: #000000;">&#40;</span>prop<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> PartialNameConvention<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> GetDescriptor<span style="color: #000000;">&#40;</span>prop.<span style="color: #0000FF;">ReflectedType</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GetPartialName</span><span style="color: #000000;">&#40;</span>prop<span style="color: #000000;">&#41;</span> <span style="color: #008000;">??</span> DefaultConventions.<span style="color: #0000FF;">PartialName</span><span style="color: #000000;">&#40;</span>prop<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">bool</span> RequiredConvention<span style="color: #000000;">&#40;</span>PropertyInfo prop<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> GetDescriptor<span style="color: #000000;">&#40;</span>prop.<span style="color: #0000FF;">ReflectedType</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">GetIsRequired</span><span style="color: #000000;">&#40;</span>prop<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Note that I used a very simple implementation of ValidatorFactory for this example that wraps a Dictionary. A real ValidatorFactory would probably wrap an IoC container or a Service Locator:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> SampleValidatorFactory <span style="color: #008000;">:</span> IValidatorFactory <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">static</span> Dictionary<span style="color: #008000;">&lt;</span>Type, IValidator<span style="color: #008000;">&gt;</span> validators <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> Dictionary<span style="color: #008000;">&lt;</span>Type, IValidator<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #000000;">&#123;</span> <span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>SampleModel<span style="color: #000000;">&#41;</span>, <span style="color: #008000;">new</span> SampleModelValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span><span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> IValidator<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> GetValidator<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> <span style="color: #000000;">&#40;</span>IValidator<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#41;</span> GetValidator<span style="color: #000000;">&#40;</span><span style="color: #008000;">typeof</span> <span style="color: #000000;">&#40;</span>T<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> IValidator GetValidator<span style="color: #000000;">&#40;</span>Type type<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		IValidator validator<span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>validators.<span style="color: #0000FF;">TryGetValue</span><span style="color: #000000;">&#40;</span>type, <span style="color: #0600FF;">out</span> validator<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">return</span> validator<span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+		<span style="color: #0600FF;">return</span> null<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+In our global.asax, we can then replace the InputBuilder's default conventions with our custom conventions:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">void</span> Application_Start<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+<span style="color: #000000;">&#123;</span>
+	RegisterRoutes<span style="color: #000000;">&#40;</span>RouteTable.<span style="color: #0000FF;">Routes</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	InputBuilder.<span style="color: #0000FF;">InputBuilder</span>.<span style="color: #0000FF;">BootStrap</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	SetupFluentValidationConventions<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">void</span> SetupFluentValidationConventions<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	var conventions <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> FluentValidationConventions<span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> SampleValidatorFactory<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	ModelPropertyFactory.<span style="color: #0000FF;">ExampleForPropertyConvention</span> <span style="color: #008000;">=</span> conventions.<span style="color: #0000FF;">ExampleConvention</span><span style="color: #008000;">;</span>
+	ModelPropertyFactory.<span style="color: #0000FF;">LabelForPropertyConvention</span> <span style="color: #008000;">=</span> conventions.<span style="color: #0000FF;">LabelConvention</span><span style="color: #008000;">;</span>
+	ModelPropertyFactory.<span style="color: #0000FF;">PartialNameConvention</span> <span style="color: #008000;">=</span> conventions.<span style="color: #0000FF;">PartialNameConvention</span><span style="color: #008000;">;</span> 
+	ModelPropertyFactory.<span style="color: #0000FF;">PropertyIsRequiredConvention</span> <span style="color: #008000;">=</span> conventions.<span style="color: #0000FF;">RequiredConvention</span><span style="color: #008000;">;</span> 
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+...and that's it. The InputBuilder will now get all its metadata from our Validator class rather than from attributes. If you want to play with the source code for this example it's available <del datetime="2009-07-20T19:53:40+00:00">in my svn repository at <strong>https://www.jeremyskinner.co.uk/svn/public/trunk/FluentValidationInputBuilders</strong> (username 'guest')</del> on <a href="http://github.com/JeremySkinner/Experiments/tree/master">GitHub</a> and can be <a href="http://cloud.github.com/downloads/JeremySkinner/Experiments/FluentValidationInputBuilders.zip">downloaded from here</a>.
+</p>

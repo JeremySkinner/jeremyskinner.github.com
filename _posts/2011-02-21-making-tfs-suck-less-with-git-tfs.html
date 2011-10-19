@@ -1,0 +1,29 @@
+---
+layout: post
+title: "Making TFS Suck Less with git-tfs"
+category: git
+postId: 633
+---
+<p>As a heavy user of the <a href="http://git-scm.com/">git</a> source control&#160; system, I find it particularly painful when having to work with TFS and its centralised model of source control. I find that the lack of local commits and decent branching significantly impacts my ability to work efficiently. </p>  <p>To try and alleviate some of this pain, I recently started using the <a href="https://github.com/spraints/git-tfs">git-tfs</a> which allows you to work against a local git repository, but then push your changes up to TFS (in a similar way to how <a href="http://progit.org/book/ch8-1.html">git-svn</a> works).</p>  <p>To get started, I first downloaded git-tfs and placed the binaries in C:git-tfs, which I then added to my PATH.</p>  <p>Next, I cloned the TFS repository in to a local git repository using the quick-clone command:</p>  <pre>git tfs quick-clone http://my-tfs-server:8080 &quot;$/MyProject/Trunk&quot; MyProject</pre>
+
+<p>This clones the latest changeset from the server and places it into a local git repository in the directory “MyProject” (note there’s also a “git tfs clone” command that will bring down the entire repository’s history, but this will take a very long time to complete on a large repository.)</p>
+
+<p>Once cloned, I set up my usual set of gitignore rules (to exclude builds artefacts, test results etc) and placed them in to the .git/info/exclude file (rather than a .gitignore file) to ensure that they aren’t checked in to the TFS repository.</p>
+
+<p>At this point, I can now work on the repository in the same way I’d work with any other git repository – creating branches, merging rebasing etc. One thing to note is that Visual Studio will complain that it can’t connect to the TFS server each time you open the solution and forces you to work in offline mode.</p>
+
+<p>Once I’ve made any changes to the git repository and I’m ready to share them with other team members, I can collapse the commits into a single TFS changeset by using either the “git tfs checkin” command, or by using the graphical “checkintool” in order to select which files I want to commit into TFS:</p>
+
+<pre>git tfs checkintool</pre>
+
+<p>Once complete, a new TFS changeset will have been published. When other team members check in their code, I can bring it down by issuing the fetch command,&#160; followed by performing a normal git merge or rebase to fast-forward my local branch:</p>
+
+<pre>git tfs fetch
+git rebase tfs/default</pre>
+
+<p>I added an alias for performing these commands to my .gitconfig file called “tpull”. This lives inside the [alias] section:</p>
+
+<pre>[alias]
+ tpull = !git tfs fetch &amp;&amp; git rebase tfs/default</pre>
+
+<p>You can read more about git-tfs at the <a href="https://github.com/spraints/git-tfs">project homepage on github</a> and on <a href="http://mattonrails.wordpress.com/">Matt’s blog</a>. </p>

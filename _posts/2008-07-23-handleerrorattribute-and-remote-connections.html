@@ -1,0 +1,25 @@
+---
+layout: post
+title: "HandleErrorAttribute and Remote Connections"
+category: .NET
+postId: 39
+---
+<p>Last week I upgraded my main application to MVC Preview 4. This morning I noticed that a number of users were receiving HTTP 500 error messages instead of being presented with a friendly error page. </p>
+
+<p>It turns out the HandleErrorAttribute in Preview 4 is the culprit. Previously I'd been using MvcContrib's <a href="http://www.codeplex.com/MVCContrib/Wiki/View.aspx?title=Rescue&referringTitle=Documentation">RescueAttribute</a>. </p>
+
+<p>
+It appears that the HandleError attribute only works locally - when using a remote connection the server just displays the standard HTTP 500 message (this is under IIS7 using Integrated Pipeline).
+</p>
+
+<p>
+I fired up the MVC source code and removed this line from HandleErrorAttribute.cs (line 85):
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">filterContext.<span style="color: #0000FF;">HttpContext</span>.<span style="color: #0000FF;">Response</span>.<span style="color: #0000FF;">StatusCode</span> <span style="color: #008000;">=</span> <span style="color: #FF0000;">500</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+
+<p>After doing this, the error pages are displayed correctly.</p>

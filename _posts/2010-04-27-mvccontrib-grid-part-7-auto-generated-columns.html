@@ -1,0 +1,81 @@
+---
+layout: post
+title: "MvcContrib Grid Part 7 – Auto-generated columns"
+category: .NET
+postId: 510
+---
+<p>This is part 7 of a series of posts on the <a href="http://mvccontrib.codeplex.com/wikipage?title=Grid">MvcContrib grid component</a>.</p>  <ul>   <li><a href="http://www.jeremyskinner.co.uk/2009/02/08/rewriting-the-mvccontrib-grid/">Part 1 – Introduction</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/02/22/rewriting-the-mvccontrib-grid-part-2-new-syntax/">Part 2 – New Syntax</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/02/23/rewriting-the-mvccontrib-grid-part-3-gridmodels-and-gridrenderers">Part 3 – GridModels and GridRenderes</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/02/28/mvccontrib-grid-part-4-limitations-of-the-webformsviewengine">Part 4 – Limitations of the WebFormsViewEngine</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2009/03/01/mvccontrib-grid-part-5-the-action-syntax">Part 5 – The Action Syntax</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2010/03/14/mvccontrib-grid-part-6-sorting/">Part 6 – Sorting</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2010/04/27/mvccontrib-grid-part-7-auto-generated-columns/">Part 7 – Auto-generated columns</a></li> </ul>  <p>The MvcContrib grid provides a way to automatically generate columns based on the public properties of an object. This is particularly useful when you are using a dedicated <a href="http://martinfowler.com/eaaDev/PresentationModel.html">presentation model</a> where the object properties map directly to the columns that you want to display. </p>  <p>To make use of this feature, you can call the <strong>AutoGenerateColumns</strong> method in the Grid declaration:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:b51d0d81-c85d-4f64-ae16-23cde9daa90f" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model<span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">AutoGenerateColumns</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+</div>
+
+<p></p>
+
+<p>By default, this will generate one column per public property and the name of the property will be used as the column heading (although PascalCased properties will have spaces inserted, eg “DateOfBirth” would be rendered as “Date Of Birth”).</p>
+
+<p>This output can be customised by making use of MVC2’s ModelMetadata.</p>
+
+<p>Out of the box, MVC2 uses the System.ComponentModel.DataAnnotations attributes to obtain metadata about a particular type (although you can also use <a href="http://fluentvalidation.codeplex.com">other frameworks</a>). The following attributes can be used to customise the auto-generated columns:</p>
+
+<ul>
+  <li>ScaffoldColumn – can be used to prevent a property from being rendered as a grid column</li>
+
+  <li>DisplayName – can be used to provide a custom column heading</li>
+
+  <li>DisplayFormat – can be used to specify a custom display format</li>
+</ul>
+
+<p>Additional columns not on your presentation model can also be added by making a call to the normal <strong>Columns</strong> method after the call to <strong>AutoGenerateColumns</strong>. For example, imagine we have a CustomerPresentationModel:</p>
+
+<p>
+  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:86b1f7f8-b42e-49bd-aa1f-eb32a7b604bb" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> CustomerPresentationModel <span style="color: #000000;">&#123;</span>
+&nbsp;
+   <span style="color: #000000;">&#91;</span>ScaffoldColumn<span style="color: #000000;">&#40;</span><span style="color: #0600FF;">false</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#93;</span>
+   <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">int</span> CustomerId <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+&nbsp;
+   <span style="color: #0600FF;">public</span> <span style="color: #FF0000;">string</span> Name <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+   <span style="color: #0600FF;">public</span> DateTime DateOfBirth <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+</p>
+
+<p>If a collection of these objects is passed to the Grid method, then two columns will be auto-generated – one for Name and one for DateOfBirth (CustomerId is excluded because it is decorated with ScaffoldColumn(false))</p>
+
+<p>If we also want to add an “Edit” link for the customer, then we could add an additional column:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:40529881-3035-4a98-aca8-d2068d2ae5c9" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="asp" style="font-family:monospace;"><span style="color: #000000; font-weight: bold;">&lt;%</span><span style="color: #006600; font-weight: bold;">=</span> Html.<span style="color: #9900cc;">Grid</span><span style="color: #006600; font-weight:bold;">&#40;</span>Model<span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">AutoGenerateColumns</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #006600; font-weight:bold;">&#41;</span>.<span style="color: #9900cc;">Columns</span><span style="color: #006600; font-weight:bold;">&#40;</span>extraColumns <span style="color: #006600; font-weight: bold;">=&gt;</span> <span style="color: #006600; font-weight:bold;">&#123;</span>
+        extraColumns.<span style="color: #990099; font-weight: bold;">For</span><span style="color: #006600; font-weight:bold;">&#40;</span>x <span style="color: #006600; font-weight: bold;">=&gt;</span> Html.<span style="color: #9900cc;">ActionLink</span><span style="color: #006600; font-weight:bold;">&#40;</span><span style="color: #cc0000;">&quot;Edit Customer&quot;</span>, <span style="color: #cc0000;">&quot;Edit&quot;</span>, <span style="color: #0000ff; font-weight: bold;">new</span><span style="color: #006600; font-weight:bold;">&#123;</span> id <span style="color: #006600; font-weight: bold;">=</span> x.<span style="color: #9900cc;">CustomerId</span> <span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span><span style="color: #006600; font-weight: bold;">;</span>
+<span style="color: #006600; font-weight:bold;">&#125;</span><span style="color: #006600; font-weight:bold;">&#41;</span> <span style="color: #000000; font-weight: bold;">%&gt;</span></pre></div></div>
+
+
+</div>
+
+<p>The additional column contains a link to the edit page for each customer. Note that while columns are automatically HTML-encoded, the grid will detect that ActionLink returns an instance of MvcHtmlString and therefore won’t encode this particular column.</p>
+
+<p>Additional columns can also be re-ordered. For example, if we wanted our “Edit” link to appear before the Name/DateOfBirth then the <strong>InsertAt </strong>method could be used:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:83f8e90d-f263-4fa5-b0a1-30a607477686" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #008000;">&lt;%=</span> Html.<span style="color: #0000FF;">Grid</span><span style="color: #000000;">&#40;</span>Model<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">AutoGenerateColumns</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Columns</span><span style="color: #000000;">&#40;</span>extraColumns <span style="color: #008000;">=&gt;</span> <span style="color: #000000;">&#123;</span>
+        extraColumns.<span style="color: #0600FF;">For</span><span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> Html.<span style="color: #0000FF;">ActionLink</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Edit Customer&quot;</span>, <span style="color: #666666;">&quot;Edit&quot;</span>, <span style="color: #008000;">new</span><span style="color: #000000;">&#123;</span> id <span style="color: #008000;">=</span> x.<span style="color: #0000FF;">CustomerId</span> <span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span>
+            .<span style="color: #0000FF;">InsertAt</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">0</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span> <span style="color: #008000;">%&gt;</span></pre></div></div>
+
+
+</div>
+
+<p>Note that the InsertAt method is not contained in the latest MvcContrib release – you’ll need to build from source to get this.</p>
+
+<p>I’ve also started to put together some <a href="http://mvccontrib.codeplex.com/wikipage?title=Grid">documentation for the grid</a> on the MvcContrib wiki.</p>

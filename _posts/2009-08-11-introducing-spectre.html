@@ -1,0 +1,97 @@
+---
+layout: post
+title: "Introducing Phantom - a build system written in C# and Boo"
+category: .NET
+postId: 173
+---
+<p>
+<strong>*Update*</strong> Since I published this post, Spectre has been renamed to 'Phantom' in order to avoid confusion with the <a href="http://specter.sourceforge.net/">Specter BDD framework</a>.
+</p>
+<p>
+<strong>*Update 2*</strong> The syntax used in this post is out of date and will not work with Phantom v0.2 or later. Please check out the <a href="http://wiki.github.com/JeremySkinner/Phantom">Phantom Documentation</a> to see the updated syntax.
+</p>
+<p>
+I've recently been reading <a href="http://ayende.com/blog">Ayende's</a> excellent book <em><a href="http://manning.com/rahien">Building Domain Specific Languages in Boo</a></em> and wanted to try out the techniques I've been learning on a real project. As such, I've created a Boo-based build system called '<a href="http://github.com/JeremySkinner/Phantom/">Phantom</a>'.
+</p>
+<h2>Why a build system?</h2>
+<p>
+In the past I've tended to use <a href="http://nant.sourceforge.net/">NAnt</a> for building my projects, but I've never really liked the XML-driven build files. I much prefer the approach taken by tools such as <a href="http://rake.rubyforge.org/">Rake</a> that allow you to configure your build through code.
+</p>
+<p>
+While it is possible to use Rake with .NET projects (for example, <a href="http://fluentnhibernate.org">Fluent NHibernate</a> uses Rake), it requires that you have Ruby, Gems and Rake installed in order to use it. One thing that I really like about NAnt is that I can store it alongside my code inside my source control repository. This way, when someone checks out the source code they can run the build without having to install any additional tools. 
+</p>
+<p>
+Like Rake, Phantom is completely code-driven and like Nant, it is completely standalone with no installation required.
+</p>
+<h2>How does a Phantom build script differ from a NAnt script?</h2>
+<p>
+Here is a typical NAnt build script that declares three targets: 'default', 'compile' and 'test'. The 'default' target depends on both 'compile' and 'test'. 'Compile' will build a project using MSBuild and 'test' will run the project's unit tests:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="xml" style="font-family:monospace;"><span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;project</span> <span style="color: #000066;">xmlns</span>=<span style="color: #ff0000;">&quot;http://nant.sf.net/release/0.86-beta1/nant.xsd&quot;</span> <span style="color: #000066;">name</span>=<span style="color: #ff0000;">&quot;MyProject&quot;</span> <span style="color: #000066;">default</span>=<span style="color: #ff0000;">&quot;default&quot;</span><span style="color: #000000; font-weight: bold;">&gt;</span></span>
+	<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;target</span> <span style="color: #000066;">name</span>=<span style="color: #ff0000;">&quot;default&quot;</span> <span style="color: #000066;">depends</span>=<span style="color: #ff0000;">&quot;compile test&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+	<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;target</span> <span style="color: #000066;">name</span>=<span style="color: #ff0000;">&quot;compile&quot;</span> <span style="color: #000066;">description</span>=<span style="color: #ff0000;">&quot;Compiles the project&quot;</span><span style="color: #000000; font-weight: bold;">&gt;</span></span>
+		<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;msbuild</span> <span style="color: #000066;">project</span>=<span style="color: #ff0000;">&quot;pathtomyproject.sln&quot;</span> <span style="color: #000066;">target</span>=<span style="color: #ff0000;">&quot;Build&quot;</span><span style="color: #000000; font-weight: bold;">&gt;</span></span>
+			<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;property</span> <span style="color: #000066;">name</span>=<span style="color: #ff0000;">&quot;configuration&quot;</span> <span style="color: #000066;">value</span>=<span style="color: #ff0000;">&quot;release&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+		<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/msbuild<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+	<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/target<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+	<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;target</span> <span style="color: #000066;">name</span>=<span style="color: #ff0000;">&quot;test&quot;</span> <span style="color: #000066;">description</span>=<span style="color: #ff0000;">&quot;Runs tests&quot;</span><span style="color: #000000; font-weight: bold;">&gt;</span></span>
+		<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;nunit2</span> <span style="color: #000066;">failonerror</span>=<span style="color: #ff0000;">&quot;true&quot;</span> <span style="color: #000066;">verbose</span>=<span style="color: #ff0000;">&quot;true&quot;</span><span style="color: #000000; font-weight: bold;">&gt;</span></span>
+			<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;formatter</span> <span style="color: #000066;">type</span>=<span style="color: #ff0000;">&quot;Plain&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+			<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;test</span> <span style="color: #000066;">assemblyname</span>=<span style="color: #ff0000;">&quot;pathtomytestassembly.dll&quot;</span> <span style="color: #000000; font-weight: bold;">/&gt;</span></span>
+		<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/nunit2<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+	<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/target<span style="color: #000000; font-weight: bold;">&gt;</span></span></span>
+<span style="color: #009900;"><span style="color: #000000; font-weight: bold;">&lt;/project<span style="color: #000000; font-weight: bold;">&gt;</span></span></span></pre></div></div>
+
+
+
+<p>Here is the same script using Phantom:</p>
+
+
+<div class="syntax"><div class="code"><pre class="python" style="font-family:monospace;">target default, <span style="color: black;">&#40;</span><span style="color: #008000;">compile</span>, <span style="color: #dc143c;">test</span><span style="color: black;">&#41;</span>:
+   <span style="color: #ff7700;font-weight:bold;">pass</span>
+&nbsp;
+desc <span style="color: #483d8b;">&quot;Compiles the project&quot;</span>
+target <span style="color: #008000;">compile</span>:
+   msbuild<span style="color: black;">&#40;</span><span style="color: #483d8b;">&quot;path/to/myproject.sln&quot;</span>, <span style="color: black;">&#123;</span> @configuration: <span style="color: #483d8b;">'release'</span> <span style="color: black;">&#125;</span><span style="color: black;">&#41;</span>
+&nbsp;
+desc <span style="color: #483d8b;">&quot;Runs tests&quot;</span>
+target <span style="color: #dc143c;">test</span>:
+  nunit<span style="color: black;">&#40;</span><span style="color: #483d8b;">&quot;path/to/testassembly.dll&quot;</span><span style="color: black;">&#41;</span></pre></div></div>
+
+
+
+<p>Note that the syntax is very similar to Rake. To run this script you would save it as 'default.boo' and then run 'Phantom.exe' in the same directory. Much like Rake, you can run <strong>phantom -t</strong> to get a list of targets in the current project:</p>
+<pre>
+Phantom v0.1.0.0
+Copyright (c) Jeremy Skinner 2009 (http://www.jeremyskinner.co.uk)
+http://github.com/JeremySkinner/Phantom
+
+
+Targets in build.boo:
+compile          Compiles the solution
+default
+package          Creates zip package
+test             Executes tests
+</pre>
+<h2>Utility functions</h2>
+<p>
+At the moment, Phantom only has a small number of utility functions. Currently these are:
+</p>
+<ul>
+<li><b>msbuild(project, options)</b> - executes msbuild against a project/solution file.</li>
+<li><b>nunit(assemblies, options)</b> - executes nunit-console.exe against a collection of test assemblies.</li>
+<li><b>exec(command, args)</b> - executes an arbitrary program.</li>
+<li><b>env(variable)</b> - gets an environment variable.</li>
+</ul>
+<p>These are in addition to Boo's built-in functions. I plan to add more over time.</p>
+
+<h2>Does the world really need another build system?</h2>
+<p>
+Probably not. This more an exercise for me in learning how to build DSLs with Boo and Rhino DSL than anything else. Nevertheless, I plan to use it with a couple of real projects. If anyone else decides to use it, please let me know!
+</p>
+<h2>Where's the source?</h2>
+<p>
+You can grab the source <a href="http://github.com/JeremySkinner/Phantom">from GitHub</a> and run Build.bat in order to compile the latest binaries.
+</p>

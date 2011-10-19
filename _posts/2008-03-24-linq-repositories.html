@@ -1,0 +1,233 @@
+---
+layout: post
+title: "Linq Repositories"
+category: .NET
+postId: 23
+---
+<p>
+Recently, the beta of <a href="http://weblogs.asp.net/fbouma/archive/2008/03/12/beta-of-linq-to-llblgen-pro-released.aspx">Linq to LLBLGen Pro</a> was announced, which adds linq-querying capabilities to LLBLGen, the Object Relational Mapper that I use in most of my projects.
+</p>
+<p>
+LLBLGen's querying API is very powerful, but also somewhat complex. For example, to retrieve a list of orders from all customers in the Northwind database for customers in the UK, you would write something like this:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">EntityCollection<span style="color: #008000;">&lt;</span>OrderEntity<span style="color: #008000;">&gt;</span> orders <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> EntityCollection<span style="color: #008000;">&lt;</span>OrderEntity<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> OrderEntityFactory<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+RelationPredicateBucket bucket <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> RelationPredicateBucket<span style="color: #000000;">&#40;</span>CustomerFields.<span style="color: #0000FF;">Country</span> <span style="color: #008000;">==</span> <span style="color: #666666;">&quot;UK&quot;</span><span style="color: #000000;">&#41;</span>
+bucket.<span style="color: #0000FF;">Relations</span>.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span>OrderEntity.<span style="color: #0000FF;">Relations</span>.<span style="color: #0000FF;">CustomerEntityUsingCustomerId</span><span style="color: #000000;">&#41;</span>
+<span style="color: #0600FF;">using</span><span style="color: #000000;">&#40;</span>DataAccessAdapter adapter <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> DataAccessAdapter<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>
+<span style="color: #000000;">&#123;</span>
+	adapter.<span style="color: #0000FF;">FetchEntityCollection</span><span style="color: #000000;">&#40;</span>orders, bucket<span style="color: #000000;">&#41;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Linq support maintains the type safety, whilst also allowing this query to be expressed in a more SQL-like fashion (which I personally find to be more intuitive):
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">using</span><span style="color: #000000;">&#40;</span>DataAccessAdapter adapter <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> DataAccessAdapter<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>
+<span style="color: #000000;">&#123;</span>
+	var meta <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> LinqMetaData<span style="color: #000000;">&#40;</span>adapter<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	var query <span style="color: #008000;">=</span> from o <span style="color: #0600FF;">in</span> meta.<span style="color: #0000FF;">Order</span>
+			where o.<span style="color: #0000FF;">Customer</span>.<span style="color: #0000FF;">Country</span> <span style="color: #008000;">==</span> <span style="color: #666666;">&quot;UK&quot;</span>
+			select o<span style="color: #008000;">;</span>
+&nbsp;
+	var results <span style="color: #008000;">=</span> query.<span style="color: #0000FF;">ToList</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+
+<p>This got me thinking...now that there are several ORMs that have linq support, wouldn't it be nice if there was a consistent method for performing linq-based queries, independent of the underlying ORM implementation. And thus the linq-repository was born.</p>
+<p>
+The majority of the work is done by the BaseRepository class which acts as a wrapper around the underlying linq provider. There's also an IRepository interface which the BaseRepository implements:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">interface</span> IRepository<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> <span style="color: #008000;">:</span> IQueryable<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span>
+<span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">void</span> Save<span style="color: #000000;">&#40;</span>T toSave<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #0600FF;">void</span> Save<span style="color: #000000;">&#40;</span>T toSave, <span style="color: #FF0000;">bool</span> isNew<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #0600FF;">void</span> Delete<span style="color: #000000;">&#40;</span>T toDelete<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> abstract <span style="color: #FF0000;">class</span> BaseRepository<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> <span style="color: #008000;">:</span> IRepository<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span>
+<span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">private</span> IQueryable<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> source<span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">protected</span> IQueryable<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> Source
+	<span style="color: #000000;">&#123;</span>
+		get <span style="color: #000000;">&#123;</span> <span style="color: #0600FF;">return</span> source<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+		set <span style="color: #000000;">&#123;</span> source <span style="color: #008000;">=</span> value<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">protected</span> BaseRepository<span style="color: #000000;">&#40;</span>IQueryable<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> source<span style="color: #000000;">&#41;</span>
+	<span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">source</span> <span style="color: #008000;">=</span> source<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	IEnumerator<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> IEnumerable<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span>.<span style="color: #0000FF;">GetEnumerator</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+	<span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> source.<span style="color: #0000FF;">GetEnumerator</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> IEnumerator GetEnumerator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+	<span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> source.<span style="color: #0000FF;">GetEnumerator</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> Expression Expression
+	<span style="color: #000000;">&#123;</span>
+		get <span style="color: #000000;">&#123;</span> <span style="color: #0600FF;">return</span> source.<span style="color: #0000FF;">Expression</span><span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> Type ElementType
+	<span style="color: #000000;">&#123;</span>
+		get <span style="color: #000000;">&#123;</span> <span style="color: #0600FF;">return</span> source.<span style="color: #0000FF;">ElementType</span><span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> IQueryProvider Provider
+	<span style="color: #000000;">&#123;</span>
+		get <span style="color: #000000;">&#123;</span> <span style="color: #0600FF;">return</span> source.<span style="color: #0000FF;">Provider</span><span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> abstract <span style="color: #0600FF;">void</span> Save<span style="color: #000000;">&#40;</span>T toSave<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #0600FF;">public</span> abstract <span style="color: #0600FF;">void</span> Delete<span style="color: #000000;">&#40;</span>T toDelete<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #0600FF;">public</span> abstract <span style="color: #0600FF;">void</span> Save<span style="color: #000000;">&#40;</span>T toSave, <span style="color: #FF0000;">bool</span> isNew<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+
+<p>
+Note that the constructor for BaseRepository takes an IQueryable representing the underlying linq provider. Now, the LLBLGen-specific subclass:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> LLBLGenRepository<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> <span style="color: #008000;">:</span> BaseRepository<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> where T <span style="color: #008000;">:</span> EntityBase2, IEntity2, <span style="color: #008000;">new</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+<span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> IDataAccessAdapter Adapter <span style="color: #000000;">&#123;</span> get<span style="color: #008000;">;</span> <span style="color: #0600FF;">private</span> set<span style="color: #008000;">;</span> <span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> LLBLGenRepository<span style="color: #000000;">&#40;</span>IDataAccessAdapter adapter, IElementCreator2 elementCreator<span style="color: #000000;">&#41;</span>
+			<span style="color: #008000;">:</span> <span style="color: #0600FF;">base</span><span style="color: #000000;">&#40;</span>CreateQuery<span style="color: #000000;">&#40;</span>adapter, elementCreator<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span>
+	<span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">Adapter</span> <span style="color: #008000;">=</span> adapter<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">static</span> IQueryable CreateQuery<span style="color: #000000;">&#40;</span>IDataAccessAdapter adapter, IElementCreator2 elementCreator<span style="color: #000000;">&#41;</span>
+	<span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> <span style="color: #008000;">new</span> DataSource2<span style="color: #000000;">&#40;</span>adapter, elementCreator, functionMappings, <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> <span style="color: #0600FF;">void</span> Save<span style="color: #000000;">&#40;</span>T toSave<span style="color: #000000;">&#41;</span>
+	<span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>toSave <span style="color: #008000;">==</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span>
+			<span style="color: #0600FF;">throw</span> <span style="color: #008000;">new</span> ArgumentNullException<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;toSave&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		Adapter.<span style="color: #0000FF;">SaveEntity</span><span style="color: #000000;">&#40;</span>toSave<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> <span style="color: #0600FF;">void</span> Save<span style="color: #000000;">&#40;</span>T toSave, <span style="color: #FF0000;">bool</span> isNew<span style="color: #000000;">&#41;</span>
+	<span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>toSave <span style="color: #008000;">==</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span>
+			<span style="color: #0600FF;">throw</span> <span style="color: #008000;">new</span> ArgumentNullException<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;toSave&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>isNew<span style="color: #000000;">&#41;</span> toSave.<span style="color: #0000FF;">IsNew</span> <span style="color: #008000;">=</span> true<span style="color: #008000;">;</span>
+&nbsp;
+		Adapter.<span style="color: #0000FF;">SaveEntity</span><span style="color: #000000;">&#40;</span>toSave<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> <span style="color: #0600FF;">void</span> Delete<span style="color: #000000;">&#40;</span>T toDelete<span style="color: #000000;">&#41;</span>
+	<span style="color: #000000;">&#123;</span>
+		Adapter.<span style="color: #0000FF;">DeleteEntity</span><span style="color: #000000;">&#40;</span>entity<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>
+Note that the constructor for the LLBLGenRepository takes instances of an IDataAccessAdapter and an IElementCreator (the two objects necessary for running linq-queries against LLBLGen) and creates a DataSource2 object (the LLBLGen query provider) which is then passed to the BaseRepository's constructor.
+</p>
+<p>So, I can now write code like this:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">IRepository<span style="color: #008000;">&lt;</span>OrderEntity<span style="color: #008000;">&gt;</span> orders <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> LLBLGenRepository<span style="color: #008000;">&lt;</span>OrderEntity<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> DataAccessAdapter<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>, <span style="color: #008000;">new</span> ElementCreator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+var query <span style="color: #008000;">=</span> from o <span style="color: #0600FF;">in</span> orders
+		where o.<span style="color: #0000FF;">Customer</span>.<span style="color: #0000FF;">Country</span> <span style="color: #008000;">==</span> <span style="color: #666666;">&quot;UK&quot;</span>
+		select o<span style="color: #008000;">;</span></pre></div></div>
+
+
+
+
+<p>
+To remove the calls to <i>new DataAccessAdapter()</i> and <i>new ElementCreator()</i>, I moved the responsibility for instantiating the repository over to an IoC container:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #008080; font-style: italic;">//in my application startup routine:</span>
+IoC.<span style="color: #0000FF;">Initialise</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> WindsorContainer<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+IoC.<span style="color: #0000FF;">Container</span>.<span style="color: #0000FF;">AddComponent</span><span style="color: #008000;">&lt;</span>IDataAccessAdapter, DataAccessAdapter<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+IoC.<span style="color: #0000FF;">Container</span>.<span style="color: #0000FF;">AddComponent</span><span style="color: #008000;">&lt;</span>IElementCreator2, ElementCreator<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+IoC.<span style="color: #0000FF;">Container</span>.<span style="color: #0000FF;">AddComponent</span><span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Repository&quot;</span>, <span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>IRepository<span style="color: #008000;">&lt;&gt;</span><span style="color: #000000;">&#41;</span>, <span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>LLBLGenRepository<span style="color: #008000;">&lt;&gt;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+<p>
+The IoC static class is simply a wrapper for the <a href="http://www.castleproject.org/container/index.html">Windsor container</a>.
+</p>
+<p>Now I can instantiate repositories like this:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">IRepository<span style="color: #008000;">&lt;</span>OrderEntity<span style="color: #008000;">&gt;</span> orders <span style="color: #008000;">=</span> IoC.<span style="color: #0000FF;">Resolve</span><span style="color: #008000;">&lt;</span>IRepository<span style="color: #008000;">&lt;</span>OrderEntity<span style="color: #008000;">&gt;&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+
+<p>
+I don't really like this, so I wrap it in a static gateway:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #FF0000;">class</span> Repository
+<span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> IRepository<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&amp;</span>t<span style="color: #008000;">;</span> <span style="color: #0600FF;">For</span><span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> where T <span style="color: #008000;">:</span> <span style="color: #FF0000;">class</span>, <span style="color: #008000;">new</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+	<span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> IoC.<span style="color: #0000FF;">Resolve</span><span style="color: #008000;">&lt;</span>IRepository<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+
+<p>...and now I can write queries like this:</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">var query <span style="color: #008000;">=</span> from o <span style="color: #0600FF;">in</span> Repository.<span style="color: #0600FF;">For</span><span style="color: #008000;">&lt;</span>OrderEntity<span style="color: #008000;">&gt;</span>
+		where o.<span style="color: #0000FF;">Customer</span>.<span style="color: #0000FF;">Country</span> <span style="color: #008000;">==</span> <span style="color: #666666;">&quot;UK&quot;</span>
+		select o<span style="color: #008000;">;</span></pre></div></div>
+
+
+
+
+<p>
+Alternatively, now that the repository is registered with Windsor, I can inject the repository directly into my ASPNET MVC Controllers:
+</p>
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> OrdersController <span style="color: #008000;">:</span> ConventionController
+<span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">private</span> IRepository<span style="color: #008000;">&lt;</span>OrderEntity<span style="color: #008000;">&gt;</span> ordersRepository<span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> OrdersController<span style="color: #000000;">&#40;</span>IRepository<span style="color: #008000;">&lt;</span>OrderEntity<span style="color: #008000;">&gt;</span> repository<span style="color: #000000;">&#41;</span>
+	<span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">this</span>.<span style="color: #0000FF;">ordersRepository</span> <span style="color: #008000;">=</span> repository<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">void</span> OrdersFromCustomersInTheUk<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+	<span style="color: #000000;">&#123;</span>
+		ViewData<span style="color: #000000;">&#91;</span><span style="color: #666666;">&quot;orders&quot;</span><span style="color: #000000;">&#93;</span> <span style="color: #008000;">=</span> from o <span style="color: #0600FF;">in</span> ordersRepository
+						where o.<span style="color: #0000FF;">Customer</span>.<span style="color: #0000FF;">Country</span> <span style="color: #008000;">==</span> <span style="color: #666666;">&quot;UK&quot;</span>
+						select o<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+

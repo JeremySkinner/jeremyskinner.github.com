@@ -1,0 +1,38 @@
+---
+layout: post
+title: "FluentValidation v3: RuleSets"
+category: FluentValidation
+postId: 628
+---
+<p>Now that <a href="http://www.jeremyskinner.co.uk/2011/01/17/fluentvalidation-2-0-now-available/">FluentValidation 2.0</a> is available I’ve started working on FluentValidation v3. At the moment, there are no binary releases for v3 but the source code is available on the v3 branch <a href="http://github.com/JeremySkinner/FluentValidation">on github</a>. </p>  <p>FluentValidation 3.0 will be adding several major new features, but will only be available on .NET 4 (FluentValidation 2.0 is the last version that will run on .NET 3.5).&#160; This is the first in a series of posts will cover some of the new upcoming features. </p>    <ul>   <li><a href="http://www.jeremyskinner.co.uk/2011/02/03/fluentvalidation-v3-rulesets/">Part 1 – RuleSets</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/02/04/fluentvalidation-v3-customizevalidatorattribute/">Part 2 – CustomizeValidatorAttribute</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/04/28/fluentvalidation-v3-asp-net-mvc-validation-interceptors/">Part 3 – ASP.NET MVC validation interceptors</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/04/29/fluentvalidation-v3-better-handling-of-nullable-types/">Part 4 – Better handling of Nullable Types</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/06/17/fluentvalidation-v3-conditional-validation-of-collection-elements/">Part 5 – Conditional validation of collection elements</a> </li>    <li><a href="http://www.jeremyskinner.co.uk/2011/06/25/fluentvalidation-v3-other-features/">Part 6 – Other Features</a> </li> </ul>  <h3>RuleSets</h3>  <p>FluentValidation v3 supports the concept of RuleSets which allow you to group validation rules together which can be executed together as a group whilst ignoring other rules. </p>  <p>For example, let’s imagine we have 3 properties on a Person object (Id, Surname and Forename) and have a validation rule for each. We could group the Surname and Forename rules together in a “Names” RuleSet:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:e9cf291a-f2ff-4dae-ae6e-5295b66d8061" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> PersonValidator <span style="color: #008000;">:</span> AbstractValidator<span style="color: #008000;">&lt;</span>Person<span style="color: #008000;">&gt;</span> <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> PersonValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+     RuleSet<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;Names&quot;</span>, <span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #008000;">=&gt;</span> <span style="color: #000000;">&#123;</span>
+        RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Surname</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+        RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Forename</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotNull</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+     <span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+     RuleFor<span style="color: #000000;">&#40;</span>x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Id</span><span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">NotEqual</span><span style="color: #000000;">&#40;</span><span style="color: #FF0000;">0</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Here the two rules on Surname and Forename are grouped together in a “Names” RuleSet. We can invoke only these rules by passing a ruleSet parameter to the Validate extension method (note that this must be a named parameter as this overload has several options available).</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:51a19f8e-5f73-41df-b86d-ce709604f2d8" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">var validator <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> PersonValidator<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+var person <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> Person<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+var result <span style="color: #008000;">=</span> validator.<span style="color: #0000FF;">Validate</span><span style="color: #000000;">&#40;</span>person, ruleSet<span style="color: #008000;">:</span> <span style="color: #666666;">&quot;Names&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+</div>
+
+<p>This allows you to break down a complex validator definition into smaller segments that can be executed in isolation.</p>
+
+<p>Next time we’ll take a look at the new CustomizeValidatorAttribute and how this can be used to gain greater control of FluentValidation 3.0’s ASP.NET MVC integration.</p>

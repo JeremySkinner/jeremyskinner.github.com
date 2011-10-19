@@ -1,0 +1,116 @@
+---
+layout: post
+title: "Using FluentValidation with an IoC Container"
+category: FluentValidation
+postId: 412
+---
+<p>In my <a href="http://www.jeremyskinner.co.uk/2010/02/13/fluentvalidation-c4mvc-video/">recent FluentValidation presentation</a> I mentioned that if you’re going to be using FluentValidation with ASP.NET MVC then you should probably be using an <a href="http://martinfowler.com/articles/injection.html">Inversion of Control container</a> rather than using the AttributedValidatorFactory.</p>  <h3>What is a Validator Factory?</h3>  <p>A validator factory is a class responsible for creating validator instances. The IValidatorFactory interface looks like this:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:df7d18af-461a-4b42-987e-e971e3e1a3b8" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">interface</span> IValidatorFactory <span style="color: #000000;">&#123;</span>
+  IValidator<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span> GetValidator<span style="color: #008000;">&lt;</span>T<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  IValidator GetValidator<span style="color: #000000;">&#40;</span>Type type<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>The interface has two methods – one generic, one not. The GetValidator method will receive a Type instance representing the type of object that needs to be validated and it is the responsibility of this factory to create and return the appropriate validator instance.</p>
+
+<h3></h3>
+
+<h3>Creating your own Validator Factory</h3>
+
+<p>To create your own Validator Factory you can either implement IValidatorFactory directly, or inherit from the <strong>ValidatorFactoryBase</strong> class (which does some of the work for you). In this example I’m going to create a validator factory that leverages <a href="http://structuremap.sourceforge.net">StructureMap</a>.</p>
+
+<p>Firstly, you’ll need to register your validator types with StructureMap:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:e81cda67-995d-47bc-9c02-227fb0a3bbb2" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">ObjectFactory.<span style="color: #0000FF;">Configure</span><span style="color: #000000;">&#40;</span>cfg <span style="color: #008000;">=&gt;</span> cfg.<span style="color: #0000FF;">AddRegistry</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> MyRegistry<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+<span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> MyRegistry <span style="color: #008000;">:</span> Registry <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> MyRegistry<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+    <span style="color: #0600FF;">For</span><span style="color: #008000;">&lt;</span>IValidator<span style="color: #008000;">&lt;</span>Person<span style="color: #008000;">&gt;&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+	.<span style="color: #0000FF;">Singleton</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+	.<span style="color: #0000FF;">Use</span><span style="color: #008000;">&lt;</span>PersonValidator<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Here I am configuring StructureMap using a custom Registry. In the Registry I tell StructureMap that when it is asked to instantiate an IValidator&lt;Person&gt;, it should return a PersonValidator.</p>
+
+<p>Now, you can write a custom ValidatorFactory that leverages StructureMap to instantiate the validator:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:cd97164d-b3e4-4248-ab7b-64614bf1151e" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> StructureMapValidatorFactory <span style="color: #008000;">:</span> ValidatorFactoryBase <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">override</span> IValidator CreateInstance<span style="color: #000000;">&#40;</span>Type validatorType<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">return</span> ObjectFactory.<span style="color: #0000FF;">TryGetInstance</span><span style="color: #000000;">&#40;</span>validatorType<span style="color: #000000;">&#41;</span> <span style="color: #0600FF;">as</span> IValidator<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>In the CreateInstance method you receive a Type object that represents the type of validator that the framework requires (for example, typeof(IValidator&lt;Customer&gt;)). This method should attempt to instantiate the appropriate type (CustomerValidator) and return it (or return <strong>null</strong> if no such type exists).</p>
+
+<h3>Using the AssemblyScanner</h3>
+
+<p>The next version of FluentValidation (1.2) will also include an “AssemblyScanner” class that makes it very easy to automatically register all of the validator classes in a particular assembly with your IoC container. Using the AssemblyScanner, the MyRegistry class could look like this:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:bbf60366-1dc3-43d6-a7fb-ba932773b40e" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #FF0000;">class</span> MyRegistry <span style="color: #008000;">:</span> Registry <span style="color: #000000;">&#123;</span>
+  <span style="color: #0600FF;">public</span> MyRegistry<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+&nbsp;
+    AssemblyScanner.<span style="color: #0000FF;">FindValidatorsInAssemblyContaining</span><span style="color: #008000;">&lt;</span>MyValidator<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+      .<span style="color: #0600FF;">ForEach</span><span style="color: #000000;">&#40;</span>result <span style="color: #008000;">=&gt;</span> <span style="color: #000000;">&#123;</span>
+           <span style="color: #0600FF;">For</span><span style="color: #000000;">&#40;</span>result.<span style="color: #0000FF;">InterfaceType</span><span style="color: #000000;">&#41;</span>
+              .<span style="color: #0000FF;">Singleton</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span>
+              .<span style="color: #0000FF;">Use</span><span style="color: #000000;">&#40;</span>result.<span style="color: #0000FF;">ValidatorType</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+      <span style="color: #000000;">&#125;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+  <span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>Note that this functionality is not in the current 1.2 beta 3 release, but will be in 1.2 RC (or you can grab it from the source code).</p>
+
+<h3></h3>
+
+<h3>Using the Factory with MVC</h3>
+
+<p>If you want to make use of FluentValidation’s <a href="http://www.jeremyskinner.co.uk/2010/02/06/fluentvalidation-1-2-beta-2-and-mvc2-rc2/">ASP.NET MVC integration</a> then you need to pass your ValidatorFactory to the FluentValidationModelValidatorProvider in your application startup routine:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:125341f7-e99e-486e-b6d8-28f217af1e8d" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">protected</span> <span style="color: #0600FF;">void</span> Application_Start<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+	RegisterRoutes<span style="color: #000000;">&#40;</span>RouteTable.<span style="color: #0000FF;">Routes</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #008080; font-style: italic;">//Configure structuremap</span>
+	ObjectFactory.<span style="color: #0000FF;">Configure</span><span style="color: #000000;">&#40;</span>cfg <span style="color: #008000;">=&gt;</span> cfg.<span style="color: #0000FF;">AddRegistry</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> MyRegistry<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+	ControllerBuilder.<span style="color: #0000FF;">Current</span>.<span style="color: #0000FF;">SetControllerFactory</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> StructureMapControllerFactory<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #008080; font-style: italic;">//Configure FV to use StructureMap</span>
+	var factory <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> StructureMapValidatorFactory<span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+	<span style="color: #008080; font-style: italic;">//Tell MVC to use FV for validation</span>
+	ModelValidatorProviders.<span style="color: #0000FF;">Providers</span>.<span style="color: #0000FF;">Add</span><span style="color: #000000;">&#40;</span><span style="color: #008000;">new</span> FluentValidationModelValidatorProvider<span style="color: #000000;">&#40;</span>factory<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>        
+	DataAnnotationsModelValidatorProvider.<span style="color: #0000FF;">AddImplicitRequiredAttributeForValueTypes</span> <span style="color: #008000;">=</span> false<span style="color: #008000;">;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>…and that’s it. FluentValidation will now use StructureMap to instantiate validator instances as it requires them.</p>
+
+<p>Sample code from this post can be <a href="http://github.com/downloads/JeremySkinner/Experiments/FluentValidationIoC.zip">downloaded from here</a>.</p>

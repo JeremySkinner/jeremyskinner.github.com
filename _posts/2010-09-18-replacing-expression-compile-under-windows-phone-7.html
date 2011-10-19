@@ -1,0 +1,67 @@
+---
+layout: post
+title: "Replacing Expression.Compile under Windows Phone 7"
+category: .NET
+postId: 571
+---
+<p>I recently started porting <a href="http://fluentvalidation.codeplex.com">FluentValidation</a> to Windows Phone 7. This didn’t take much effort as most of the work had already been done when I ported it to Silverlight. However, the one thing that did cause a problem is the lack of expression tree compilation. </p>  <p>FluentValidation uses expression tree compilation in order to convert an expression into a delegate. For example, if you define a rule in FluentValidation by using <font face="Courier New">RuleFor(x =&gt; x.Surname).NotNull()</font> then FluentValidation will first parse the expression tree to extract the name of the property and then compile the expression into a delegate. This delegate can then be used in order to retrieve the value of the Surname property at runtime. </p>  <p>The <a href="http://msdn.microsoft.com/en-us/library/ff426930(v=VS.96).aspx">Differences between Silverlight and Windows Phone</a> article on MSDN simply states that “LambdaExpression.Compile is not supported in Windows Phone Developer Tools CTP Refresh.” This is because LambdaExpression uses <a href="http://msdn.microsoft.com/en-us/library/3y322t50.aspx">Reflection.Emit</a> internally in order to write IL, and Reflection.Emit is not supported under WP7.</p>  <p>The workaround was to write a simple extension method that can convert a MemberExpression (expressions that return the value of a property/field) into a delegate:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:d575c9ba-2a00-4c8b-82d7-05eedfa6d093" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;"><span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> <span style="color: #FF0000;">class</span> ReflectionExtensions <span style="color: #000000;">&#123;</span>
+	<span style="color: #0600FF;">public</span> <span style="color: #0600FF;">static</span> TDelegate Compile<span style="color: #008000;">&lt;</span>TDelegate<span style="color: #008000;">&gt;</span><span style="color: #000000;">&#40;</span><span style="color: #0600FF;">this</span> Expression<span style="color: #008000;">&lt;</span>TDelegate<span style="color: #008000;">&gt;</span> expression<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var compiledDelegate <span style="color: #008000;">=</span> CompilePropertyGetterExpression<span style="color: #000000;">&#40;</span>expression, <span style="color: #008000;">typeof</span><span style="color: #000000;">&#40;</span>TDelegate<span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">return</span> <span style="color: #000000;">&#40;</span>TDelegate<span style="color: #000000;">&#41;</span>compiledDelegate<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">static</span> <span style="color: #FF0000;">object</span> CompilePropertyGetterExpression<span style="color: #000000;">&#40;</span>LambdaExpression expression, Type delegateType<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var member <span style="color: #008000;">=</span> GetPropertyFromExpression<span style="color: #000000;">&#40;</span>expression<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>member <span style="color: #008000;">==</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">throw</span> <span style="color: #008000;">new</span> NotSupportedException<span style="color: #000000;">&#40;</span><span style="color: #666666;">&quot;FluentValidation for WP7 can only be used with expressions that reference public properties, eg x =&gt; x.SomeProperty&quot;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+		var compiledDelegate <span style="color: #008000;">=</span> <span style="color: #FF0000;">Delegate</span>.<span style="color: #0000FF;">CreateDelegate</span><span style="color: #000000;">&#40;</span>delegateType, member.<span style="color: #0000FF;">GetGetMethod</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+		<span style="color: #0600FF;">return</span> compiledDelegate<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">static</span> PropertyInfo GetPropertyFromExpression<span style="color: #000000;">&#40;</span>LambdaExpression expression<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		var memberExp <span style="color: #008000;">=</span> UnwrapUnary<span style="color: #000000;">&#40;</span>expression.<span style="color: #0000FF;">Body</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+		<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>memberExp <span style="color: #008000;">==</span> <span style="color: #0600FF;">null</span><span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">return</span> null<span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+		<span style="color: #0600FF;">return</span> memberExp.<span style="color: #0000FF;">Member</span> <span style="color: #0600FF;">as</span> PropertyInfo<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+&nbsp;
+	<span style="color: #0600FF;">private</span> <span style="color: #0600FF;">static</span> MemberExpression UnwrapUnary<span style="color: #000000;">&#40;</span>Expression toUnwrap<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+		<span style="color: #0600FF;">if</span> <span style="color: #000000;">&#40;</span>toUnwrap <span style="color: #008000;">is</span> UnaryExpression<span style="color: #000000;">&#41;</span> <span style="color: #000000;">&#123;</span>
+			<span style="color: #0600FF;">return</span> <span style="color: #000000;">&#40;</span><span style="color: #000000;">&#40;</span>UnaryExpression<span style="color: #000000;">&#41;</span>toUnwrap<span style="color: #000000;">&#41;</span>.<span style="color: #0000FF;">Operand</span> <span style="color: #0600FF;">as</span> MemberExpression<span style="color: #008000;">;</span>
+		<span style="color: #000000;">&#125;</span>
+&nbsp;
+		<span style="color: #0600FF;">return</span> toUnwrap <span style="color: #0600FF;">as</span> MemberExpression<span style="color: #008000;">;</span>
+	<span style="color: #000000;">&#125;</span>
+<span style="color: #000000;">&#125;</span></pre></div></div>
+
+
+</div>
+
+<p>This works by extracting the PropertyInfo from the MemberExpression’s Member property and then using Delegate.CreateDelegate to create a delegate from the property’s getter. The extension method can be used like the native implementation of Expression.Compile: </p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:081bd7ed-2fbe-470a-9aa6-fd90e010b294" class="wlWriterEditableSmartContent">
+
+
+<div class="syntax"><div class="code"><pre class="csharp" style="font-family:monospace;">var person <span style="color: #008000;">=</span> <span style="color: #008000;">new</span> Person <span style="color: #000000;">&#123;</span> Name <span style="color: #008000;">=</span> <span style="color: #666666;">&quot;Jeremy&quot;</span> <span style="color: #000000;">&#125;</span><span style="color: #008000;">;</span>
+&nbsp;
+Expression<span style="color: #008000;">&lt;</span>Func<span style="color: #008000;">&lt;</span>Person, <span style="color: #FF0000;">string</span><span style="color: #008000;">&gt;&gt;</span> expression <span style="color: #008000;">=</span> x <span style="color: #008000;">=&gt;</span> x.<span style="color: #0000FF;">Name</span><span style="color: #008000;">;</span>
+var getter <span style="color: #008000;">=</span> expression.<span style="color: #0000FF;">Compile</span><span style="color: #000000;">&#40;</span><span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+var name <span style="color: #008000;">=</span> getter<span style="color: #000000;">&#40;</span>person<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span>
+&nbsp;
+<span style="color: #008080; font-style: italic;">// Prints 'Jeremy'</span>
+Console.<span style="color: #0000FF;">WriteLine</span><span style="color: #000000;">&#40;</span>name<span style="color: #000000;">&#41;</span><span style="color: #008000;">;</span></pre></div></div>
+
+
+</div>
+
+<p>Although the .NET framework’s native Expression.Compile does a lot more than this, I don’t really need the additional functionality for FluentValidation, so this solution works quite nicely.</p>
