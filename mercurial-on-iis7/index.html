@@ -1,0 +1,151 @@
+---
+layout: default
+---
+<h2>Setting up a Mercurial server under IIS7 on Windows Server 2008 R2</h2>
+<p>This guide walks you through setting up a Mercurial server under IIS7 on Windows Server 2008 R2.</p>
+<p><strong>Note:</strong> This post uses Mercurial 1.4.3 and Python 2.5.4, although this process will also work with Mercurial 1.5 and Python 2.6.4</p>
+<h3>Install Mercurial</h3>
+<p>First you&#8217;ll need <a href="http://mercurial.selenic.com/">to download</a> and install Mercurial. I won&#8217;t walk through this as it&#8217;s a simple case of pressing &quot;next&quot; several times.</p>
+<h3>Install Python</h3>
+<p>Next you&#8217;ll need to install Python. Note that you need to use the same version of Python that was used to build Mercurial. This guide uses Mercurial 1.4.3 with Python 2.5.4, but if you’re installing Mercurial 1.5 then you’ll need to use Python 2.6 instead. </p>
+<p><strong>Be sure to install the x86 version of Python even if you&#8217;re running on an x64 system.</strong></p>
+<h3>Get hgwebdir</h3>
+<p>Next you&#8217;ll need to download hgwebdir.cgi. This is the python script that will allow serving Mercurial repositories through a web server.</p>
+<p>Hgwebdir is part of the Mercurial source code, so you&#8217;ll need to download the source package to get it. This can be found <a href="http://mercurial.selenic.com/downloads/">on the Mercurial site</a> or you can check out the hg source by running the following command:</p>
+
+<div class="wp_syntax"><div class="code"><pre class="dos" style="font-family:monospace;">hg clone http://selenic.com/repo/hg</pre></div></div>
+
+<p>Once downloaded, hgwebdir.cgi is in the root of the source distribution.</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/01-hgwebdir.jpg"><img class="alignnone size-full wp-image-384" title="01-hgwebdir" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/01-hgwebdir.jpg" width="364" height="597" /></a></p>
+<h3>Install IIS</h3>
+<p>Under Windows Server 2008 you can install IIS under the Server Manager and clicking &quot;Add Roles&quot;. Proceed through the wizard and select the &quot;Web Server (IIS)&quot; role.</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/02-iisrole.jpg"><img class="alignnone size-full wp-image-385" title="02-iisrole" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/02-iisrole.jpg" width="782" height="573" /></a></p>
+<p>Under &quot;Role Services&quot; ensure that you enable Basic Authentication as well as CGI extensibility.</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/03-iis-cgi.jpg"><img class="alignnone size-full wp-image-386" title="03-iis-cgi" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/03-iis-cgi.jpg" width="776" height="571" /></a></p>
+<h3>Configure Python for IIS</h3>
+<p>First, create a new directory under the wwwroot directory (C:inetpubwwwroot). I&#8217;m going to call it &quot;hg&quot;.</p>
+<p>In the &quot;Handler mappings&quot; section for this directory select &quot;Add Script Map&quot;:</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/04-iis-handlermap.jpg"><img class="alignnone size-full wp-image-387" title="04-iis-handlermap" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/04-iis-handlermap.jpg" width="640" height="480" /></a></p>
+<p>Next, enter <strong>*.cgi</strong> as the Request Path and the Executable Path should be set to <strong>c:Python25python.exe -u &quot;%s&quot;</strong>. Enter &quot;Python&quot; as the Name.</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/05-iis-scriptmap.jpg"><img class="alignnone size-full wp-image-388" title="05-iis-scriptmap" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/05-iis-scriptmap.jpg" width="394" height="323" /></a></p>
+<p>At this point, you can test whether Python is working properly by creating a simple python script:</p>
+
+<div class="wp_syntax"><div class="code"><pre class="python" style="font-family:monospace;"><span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">'Status: 200 OK'</span>
+<span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">'Content-type: text/html'</span>
+<span style="color: #ff7700;font-weight:bold;">print</span>
+&nbsp;
+<span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">'&lt;html&gt;&lt;head&gt;'</span>
+<span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">''</span>
+<span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">'&lt;h1&gt;It works!&lt;/h1&gt;'</span>
+<span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">''</span>
+<span style="color: #ff7700;font-weight:bold;">print</span> <span style="color: #483d8b;">''</span></pre></div></div>
+
+<p>Save this in the directory that you created (C:inetpubwwwroothg) as test.cgi. Now, when you point your browser to http://localhost/hg/test.cgi you should see the following output:</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/06-iis-scriptmap.jpg"><img class="alignnone size-full wp-image-389" title="06-iis-scriptmap" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/06-iis-scriptmap.jpg" width="652" height="425" /></a></p>
+<h3>Enabling hgwebdir.cgi</h3>
+<p>First, copy hgwebdir.cgi (that you downloaded in step 3) and paste it into c:inetpubwwwroothg. Open this file in a text editor and scroll down to the end. The last lines should look like this:</p>
+
+<div class="wp_syntax"><div class="code"><pre class="python" style="font-family:monospace;">application = hgwebdir<span style="color: black;">&#40;</span><span style="color: #483d8b;">'hgweb.config'</span><span style="color: black;">&#41;</span>
+wsgicgi.<span style="color: black;">launch</span><span style="color: black;">&#40;</span>application<span style="color: black;">&#41;</span></pre></div></div>
+
+<p>Change the first line to explicitly specify the path to your hg directory:</p>
+
+<div class="wp_syntax"><div class="code"><pre class="python" style="font-family:monospace;">application = hgwebdir<span style="color: black;">&#40;</span><span style="color: #483d8b;">'c:inetpubwwwroothghgweb.config'</span><span style="color: black;">&#41;</span>
+wsgicgi.<span style="color: black;">launch</span><span style="color: black;">&#40;</span>application<span style="color: black;">&#41;</span></pre></div></div>
+
+<p>Next, you&#8217;ll need to unzip the Mercurial library into c:inetpubwwwroothg. This can be found in <strong>Library.zip</strong> under the <strong>c:program files (x86)Mercurial</strong> directory.</p>
+<p>You&#8217;ll now need to copy the hgweb templates directory into c:inetpubwwwroothg. This is located in the root of the Mercurial installation directory (C:program files (x86)Mercurial)</p>
+<p>Finally, create a file called <strong>hgweb.config</strong> in c:inetpubwwwroothg. This file can be empty for now (we&#8217;ll be putting something in it shortly).</p>
+<p>At this point, visiting <strong>http://localhost/hg/hgwebdir.cgi</strong> will show you an empty repository page:</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/07-hgwebdir-empty.jpg"><img class="alignnone size-full wp-image-390" title="07-hgwebdir-empty" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/07-hgwebdir-empty.jpg" width="711" height="529" /></a></p>
+<h3>Configuring Repositories</h3>
+<p>Now you&#8217;ll need to create some repositories to publish. To do this, create a directory in the root of the C: drive called &quot;Repositories&quot;. This is where our repositories are going to be stored.</p>
+<p>Next, I&#8217;m going to create a &quot;test&quot; repository by issuing the following commands:</p>
+
+<div class="wp_syntax"><div class="code"><pre class="dos" style="font-family:monospace;"><span style="color: #b1b100; font-weight: bold;">cd</span> c:repositories
+<span style="color: #b1b100; font-weight: bold;">mkdir</span> test
+hg init test</pre></div></div>
+
+<p>Now we have a repository created, we need to tell hgwebdir where to find it. We can do this by opening up the hgweb.config file we created earlier and adding the following lines:</p>
+
+<div class="wp_syntax"><div class="code"><pre class="ini" style="font-family:monospace;"><span style="color: #000066; font-weight:bold;"><span style="">&#91;</span>collections<span style="">&#93;</span></span>
+C:repositories <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> C:repositories</span></pre></div></div>
+
+<p>Now, visiting http://localhost/hg/hgwebdir.cgi should display our &quot;test&quot; repository</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/08-display-repositories.jpg"><img class="alignnone size-full wp-image-391" title="08-display-repositories" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/08-display-repositories.jpg" width="643" height="572" /></a></p>
+<p>At this point it should now be possible to clone the test repository from the server with the following command:</p>
+<pre>hg clone http://localhost/hg/hgwebdir.cgi/test</pre>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/09-cloning.jpg"><img class="alignnone size-full wp-image-392" title="09-cloning" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/09-cloning.jpg" width="677" height="333" /></a></p>
+<h3>Pretty URLs</h3>
+<p>Personally, I don&#8217;t like having to specify &quot;hgwebdir.cgi&quot; in the URLs. I&#8217;d much prefer something like <strong>http://localhost/hg/test</strong> to access my test repository. </p>
+<p>This can be achived by using the URL rewriting extension for IIS which can be <a href="http://www.iis.net/expand/URLRewrite">downloaded from Microsoft.</a></p>
+<p>Once installed, you can access the URL rewriting settings though the &quot;URL Rewrite&quot; section of the IIS Manager. Select the &quot;hg&quot; subdirectory in the Connections pane and then select &quot;URL Rewrite&quot;:</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/10-iis-urlrewrite.jpg"><img class="alignnone size-full wp-image-393" title="10-iis-urlrewrite" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/10-iis-urlrewrite.jpg" width="703" height="491" /></a></p>
+<p>In the URL rewrite section add a new blank rule. The name of the rule is going to be &quot;rewrite to hgwebdir&quot;.</p>
+<p>Under the &quot;Match URL&quot; section set &quot;Using&quot; to &quot;Wildcards&quot; and set the &quot;Pattern&quot; to &quot;*&quot;</p>
+<p>Under &quot;Conditions&quot; we want to ensure that we do not re-write URLs to any physical files, so add a condition for &quot;Is Not a File&quot;:</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/11-iis-isnotafile.jpg"><img class="alignnone size-full wp-image-394" title="11-iis-isnotafile" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/11-iis-isnotafile.jpg" width="416" height="279" /></a></p>
+<p>In the &quot;Rewrite URL&quot; box at the bottom of the screen enter hgwebdir.cgi/{R:1}</p>
+<p>The end result will look like this:</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/12-iis-rewriterule.jpg"><img class="alignnone size-full wp-image-395" title="12-iis-rewriterule" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/12-iis-rewriterule.jpg" width="613" height="705" /></a></p>
+<p>Finally, re-open your hgweb.config and add the following section:</p>
+
+<div class="wp_syntax"><div class="code"><pre class="ini" style="font-family:monospace;"><span style="color: #000066; font-weight:bold;"><span style="">&#91;</span>web<span style="">&#93;</span></span>
+<span style="color: #000099;">baseurl</span> <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> /hg</span></pre></div></div>
+
+<p>This will ensure that hgwebdir generates urls to /hg rather than /hg/hgwebdir.cgi</p>
+<p>Now, visiting http://localhost/hg will display our repositories page and http://localhost/hg/test will show our test repository. Likewise, we can now clone repositories using this url format.</p>
+<h3>Pushing Changes</h3>
+<p>By default, all repositores served via hgwebdir are read only &#8211; you cannot push changes to them. To change this, we can specify the users that should be able to push to the repositores by adding an &quot;allow_push&quot; section to our hgweb.config:</p>
+
+<div class="wp_syntax"><div class="code"><pre class="ini" style="font-family:monospace;"><span style="color: #000066; font-weight:bold;"><span style="">&#91;</span>collections<span style="">&#93;</span></span>
+c:repositories <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> c:repositories</span>
+&nbsp;
+<span style="color: #000066; font-weight:bold;"><span style="">&#91;</span>web<span style="">&#93;</span></span>
+<span style="color: #000099;">baseurl</span> <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> /hg</span>
+<span style="color: #000099;">allow_push</span> <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> Jeremy</span></pre></div></div>
+
+<p>This means that the user account &quot;Jeremy&quot; (a local user account on the server) will have push access to the repository.</p>
+<p>However, if we try and push changes we&#8217;ll get an error:</p>
+
+<div class="wp_syntax"><div class="code"><pre class="dos" style="font-family:monospace;">c:projectstest&amp;gt;hg push
+pushing to http://localhost/hg/hgwebdir.cgi/test
+searching <span style="color: #00b100; font-weight: bold;">for</span> changes
+ssl required</pre></div></div>
+
+<p>For now, we&#8217;ll disable SSL by setting push_ssl to false in our hgweb.config:</p>
+
+<div class="wp_syntax"><div class="code"><pre class="ini" style="font-family:monospace;"><span style="color: #000066; font-weight:bold;"><span style="">&#91;</span>collections<span style="">&#93;</span></span>
+c:repositories <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> c:repositories</span>
+&nbsp;
+<span style="color: #000066; font-weight:bold;"><span style="">&#91;</span>web<span style="">&#93;</span></span>
+<span style="color: #000099;">baseurl</span> <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> /hg</span>
+<span style="color: #000099;">allow_push</span> <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> Jeremy</span>
+<span style="color: #000099;">push_ssl</span> <span style="color: #000066; font-weight:bold;">=</span><span style="color: #660066;"> false</span></pre></div></div>
+
+<p>Now when we try and push we get a different error:</p>
+
+<div class="wp_syntax"><div class="code"><pre class="ini" style="font-family:monospace;">c:projectstest&amp;gt<span style="color: #666666; font-style: italic;">;hg push</span>
+pushing to http://localhost/hg/hgwebdir.cgi/test
+searching for changes
+abort: authorization failed</pre></div></div>
+
+<p>This happens because by default IIS is serving up our site without authentication. We need to enable Basic Authentication in the Authentication area of IIS:</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/13-iis-auth.jpg"><img class="alignnone size-full wp-image-396" title="13-iis-auth" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/13-iis-auth.jpg" width="401" height="416" /></a> </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/14-iis-auth2.jpg"><img class="alignnone size-full wp-image-397" title="14-iis-auth2" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/14-iis-auth2.jpg" width="579" height="325" /></a></p>
+<p>Now you&#8217;ll be prompted to enter your username and password:</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/15-push-username.jpg"><img class="alignnone size-full wp-image-398" title="15-push-username" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/15-push-username.jpg" width="436" height="331" /></a></p>
+<p>After specifying the credetails, the changes will be pushed up. We can view the commit in our web UI:</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/16-view-log.jpg"><img class="alignnone size-full wp-image-399" title="16-view-log" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/16-view-log.jpg" width="726" height="528" /></a></p>
+<h3>Enabling SSL</h3>
+<p>When you use Basic authentication, your username and password will be sent over the wire in plain text. To make this more secure we can enable SSL. For this example I&#8217;m going to use a self-signed certificate, although this will also work with a real SSL certificate purchased from a provider.</p>
+<p>First, you&#8217;ll need to go into the IIS manager, select &quot;Server Certificates&quot; and click &quot;Create Self-Signed Certificate&quot;</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/17-iis-createcert.jpg"><img class="alignnone size-full wp-image-400" title="17-iis-createcert" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/17-iis-createcert.jpg" width="825" height="477" /></a></p>
+<p>Now, add a binding for your Web Site for https on port 443 by right clicking on the site and selecting &quot;Edit Bindings&quot;.</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/18-iis-bindings.jpg"><img class="alignnone size-full wp-image-401" title="18-iis-bindings" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/18-iis-bindings.jpg" width="350" height="381" /></a></p>
+<p>Add a new binding for https on port 443:</p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/19-iis-bindings2.jpg"><img class="alignnone size-full wp-image-402" title="19-iis-bindings2" alt="" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/02/19-iis-bindings2.jpg" width="653" height="470" /></a></p>
+<p>Once this is done, you should now be able to access the hgwebdir site by using https (https://localhost/hg). You&#8217;ll probably get an invalid certificate warning in your browser.</p>
+<p>Now you can re-clone the repository using the secure url (also be sure to remove the &quot;push_ssl = false&quot; line from hgweb.config)</p>
+<h3>All done!</h3>
+<p>At this point, you should have successfully set up everything you need to use Mercurial in IIS7.</p>

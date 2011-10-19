@@ -123,6 +123,10 @@ body {
   margin-bottom: 15px;
 }
 
+.profile-pic {
+	float: left;
+}
+
 #sidebar ul {
   list-style-type: none;
   margin: 0;
@@ -137,7 +141,8 @@ img {
   border: 0;
 }
 
-ul#pages { 
+ul#pages {
+  clear: both; 
   margin-bottom: 20px; 
 }
 

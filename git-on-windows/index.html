@@ -1,0 +1,105 @@
+---
+layout: default
+---
+<h2>Git on Windows</h2>
+<p>This guide shows you how to contribute to a github-hosted open source project from Windows. If you’re interested in hosting a git server under Windows, check out these posts:</p>
+<ul>
+<li><a href="http://www.jeremyskinner.co.uk/2010/06/25/hosting-a-git-server-under-iis7-on-windows/">Hosting git on Windows under IIS</a> </li>
+<li><a href="http://www.jeremyskinner.co.uk/2010/07/31/hosting-a-git-server-under-apache-on-windows/">Hosting git on Windows under Apache</a> </li>
+</ul>
+<p>&#160;</p>
+<p>This guide shows how you can contribute to a project hosted on github from Windows. I originally wrote it for the <a href="http://mvccontrib.codeplex.com">MvcContrib</a> project (which is since moved to using Mercurial) but the concepts are still relevant for other github-hosted projects.</p>
+<ul>
+<li><a href="#installing">Installing Git</a> </li>
+<li><a href="#ssh">SSH Keys</a> </li>
+<li><a href="#signup">Signing up to GitHub</a> </li>
+<li><a href="#getting-the-source">Getting the source</a> </li>
+<li><a href="#fork">Using a fork to contribute a patch</a></a> </li>
+<li><a href="#pull-request">Notifying the project maintainer using a Pull Requst</a> </li>
+</ul>
+<p> <a name="installing"></a><br />
+<h3>Downloading and Installing Git</h3>
+<p>Install git by downloading the latest msysGit installer from <a href="http://code.google.com/p/msysgit">http://code.google.com/p/msysgit</a> </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/001download.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="001-download" border="0" alt="001-download" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/001download_thumb.jpg" width="244" height="204" /></a> </p>
+<p>Once downloaded, run the installer and proceed through the wizard until you are asked to adjust your PATH environment: </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/002path.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="002-path" border="0" alt="002-path" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/002path_thumb.jpg" width="244" height="189" /></a> </p>
+<p>The default setting is to &quot;use Git Bash only&quot; which means you will only be able to use git commands from within the Bash shell. Personally, I also like to run the git commands from inside a windows command prompt or a PowerShell window, so I choose the second option &quot;Run git from within the Windows Command prompt.&quot; </p>
+<p>Next, you will be asked which SSH client you wish to use. Choose &#8216;OpenSSH&#8217; unless you have a particular need to use putty/plink: </p>
+<p>&#160;<a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/003ssh.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="003-ssh" border="0" alt="003-ssh" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/003ssh_thumb.jpg" width="244" height="188" /></a>&#160; </p>
+<p>The next stage is to choose your line endings. Choose &#8216;Use Windows style line endings&#8217;. </p>
+<p>&#160;<a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/004lineendings.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="004-line-endings" border="0" alt="004-line-endings" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/004lineendings_thumb.jpg" width="244" height="187" /></a>&#160; </p>
+<p>Pressing &#8216;Next&#8217; will install msysGit to your system. </p>
+<p> <a name="ssh"></a><br />
+<h3>Configuring SSH Keys</h3>
+<p>Now that msysGit is installed, you will need to generate SSH keys in order to commit code to GitHub. </p>
+<p>First, open &quot;Git GUI&quot; from the Start menu: </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/005startmenu.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="005-startmenu" border="0" alt="005-startmenu" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/005startmenu_thumb.jpg" width="196" height="244" /></a>&#160;&#160; </p>
+<p>From the &quot;Help&quot; menu select &quot;Show SSH Key&quot;: </p>
+<p>&#160;<a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/006gitgui.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="006-gitgui" border="0" alt="006-gitgui" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/006gitgui_thumb.jpg" width="244" height="144" /></a>&#160; </p>
+<p>Next, click the &quot;Generate Key&quot; button: </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/007generatekeys.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="007-generatekeys" border="0" alt="007-generatekeys" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/007generatekeys_thumb.jpg" width="244" height="169" /></a>&#160; </p>
+<p>This will generate your public and private OpenSSH keys. You will be prompted to enter an optional passphrase. If you do not leave this blank, then you will be prompted to enter the password each time you try to push to github. For this reason, I usually leave it blank. </p>
+<p>Once generated, Git GUI will store your private and public keys in your %USERPROFILE%/.ssh directory. You may wish to back up these keys to somewhere secure. Git GUI will now display your public key. Copy this to your clipboard as you will need it when <a href="#signup">signing up to github.</a> </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/008publickey.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="008-publickey" border="0" alt="008-publickey" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/008publickey_thumb.jpg" width="244" height="170" /></a>&#160;&#160; </p>
+<p>You should also tell git your email address and name by opening a command prompt and typing the following commands: </p>
+<pre>git config --global user.name &quot;Your name&quot;
+git config --global user.email your@emailaddress.com</pre>
+<p><a name="signup"></a></p>
+<h3>Signing up to GitHub</h3>
+<p><strong>Note:</strong> You do not have to sign up to GitHub if all you want to do is download and compile the source. If this is all you need to do, then feel free to skip this step and read <a href="#getting-the-source">building from source</a>. </p>
+<p>On the <a href="https://github.com/signup/free">GitHub sign up page</a> you&#8217;ll need to enter your username, email address, password and the <a href="#ssh">SSH Key that you generated in the previous step</a>. </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/009signup.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="009-signup" border="0" alt="009-signup" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/009signup_thumb.jpg" width="240" height="244" /></a>&#160; </p>
+<p><a name="getting-the-source"></a></p>
+<h3>Getting the Source</h3>
+<p><strong>Note:</strong> This step is only useful if you want to get the source, but have no intention of contributing. If you wish to contribute a patch please read the section on <a href="#fork">using a fork to contribute a patch.</a> </p>
+<h3>Option 1: Zip file</h3>
+<p>GitHub automatically publishes the latest source code as either a .zip or a .tar.gz file. To download it, visit the <a href="http://github.com/mvccontrib/mvccontrib">MvcContrib project page</a> and click the download button: </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/010download.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="010-download" border="0" alt="010-download" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/010download_thumb.jpg" width="244" height="230" /></a>&#160; </p>
+<h3>Option 2: Clone the repository locally</h3>
+<p>Clone the repository locally by opening a command window, going into your projects directory and typing: </p>
+<pre>git clone git://github.com/mvccontrib/MvcContrib.git</pre>
+<p>This create a local git repository and fetch the mvccontrib source code. </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/011publicclone.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="011-public-clone" border="0" alt="011-public-clone" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/011publicclone_thumb.jpg" width="244" height="123" /></a>&#160;&#160; </p>
+<p>Once checked out, you can cd into the MvcContrib directory and run the build script: </p>
+<p>&#160;<a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/012build.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="012-build" border="0" alt="012-build" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/012build_thumb.jpg" width="244" height="123" /></a>&#160; </p>
+<p><a name="fork"></a></p>
+<h3>Using a fork to contribute a patch</h3>
+<p>If you wish to contribute a patch to MvcContrib you will need to <em>fork</em> the MvcContrib repository. You can do this by logging into GitHub, going to the <a href="http://github.com/mvccontrib/MvcContrib/">MvcContrib project page</a> and clicking on the <em>fork</em> button. </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/013fork.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="013-fork" border="0" alt="013-fork" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/013fork_thumb.jpg" width="244" height="230" /></a>&#160; </p>
+<p>This will copy the MvcContrib repository to your own user account. You can then clone this repository locally (not the original repository) using the &quot;Your clone URL&quot; via ssh: </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/014yourclone.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="014-yourclone" border="0" alt="014-yourclone" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/014yourclone_thumb.jpg" width="244" height="226" /></a>&#160; </p>
+<p>You can clone your fork locally by typing: </p>
+<pre>git clone git@github.com:YourUsername/MvcContrib.git</pre>
+<p>&#160;<a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/015privateclone.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="015-private-clone" border="0" alt="015-private-clone" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/015privateclone_thumb.jpg" width="244" height="124" /></a>&#160; </p>
+<p>You will automatically be authenticated to GitHub using the private key <a href="#ssh">that you have already generated.</a> </p>
+<p><strong>Note:</strong> If this is the first time you have cloned from github using SSH, you will receive the following message: </p>
+<pre>The authenticity of host 'github.com' can't be established.
+RSA key fingerprint is 16:27:ac:a5:76:28:2d:36:63:1b:56:4d:eb:df:a6:48.
+Are you sure you wish to continue connecting (yes/no)?</pre>
+<p>If you receive this message you must type &quot;yes&quot; (not just &quot;y&quot;).</p>
+<p>At this point, you can now edit the source code. Once you have made your changes, you can type <strong>git status</strong> to see the list of uncommitted changes: </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/016status.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="016-status" border="0" alt="016-status" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/016status_thumb.jpg" width="244" height="124" /></a>&#160;&#160; </p>
+<p>To commit these changes you will first need to stage them. You can either do this by adding each individual file to the index (<strong>git add pathtochangedfile</strong>) or by adding all changes by typing <strong>git add -A</strong>. After doing this, typing <strong>git status</strong> again will show you the changes that will be committed: </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/017statusstaged.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="017-status-staged" border="0" alt="017-status-staged" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/017statusstaged_thumb.jpg" width="244" height="123" /></a>&#160; </p>
+<p>At this point, you can commit your changes by typing <strong>git commit</strong>. If you haven&#8217;t set up an EDITOR environment variable yet, you will receive the following message: </p>
+<pre>error: Terminal is dumb but no VISUAL nor EDITOR defined.
+Please supply the message using either -m or -F option.</pre>
+<p>To work around this, add an environment variable to your system called EDITOR the value of which should be the path to your favourite text editor (in my case, c:downloadsnotepad2.exe). </p>
+<p>Now typing <strong>git commit</strong> will open the <em>COMMIT_EDITMSG</em> file in your text editor and will show you the changes that will be committed. Lines prefixed with a # are comments and will not appear in the commit message. </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/018committing.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="018-committing" border="0" alt="018-committing" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/018committing_thumb.jpg" width="244" height="161" /></a>&#160; </p>
+<p>Once you have saved the file and closed your editor, the changes will be committed to your local repository. </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/019committed.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="019-committed" border="0" alt="019-committed" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/019committed_thumb.jpg" width="244" height="124" /></a>&#160; </p>
+<p>Now you can push these changes back to your forked repository on github by using the following command: </p>
+<pre>git push origin master</pre>
+<p>&quot;origin&quot; is the name of the remote repository that you want to push to (git automatically added your github fork as a remote repository named &#8216;origin&#8217; when you created your local clone) and &quot;master&quot; is the name of the branch. </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/020push.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="020-push" border="0" alt="020-push" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/020push_thumb.jpg" width="244" height="124" /></a>&#160; </p>
+<p>If you visit your cloned repository page on GitHub, you&#8217;ll now see your new commit: </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/021mycommit.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="021-mycommit" border="0" alt="021-mycommit" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/021mycommit_thumb.jpg" width="244" height="226" /></a>&#160; </p>
+<p><a name="pull-request"></a></p>
+<h3>Notifying the MvcContrib committers using a Pull Requst</h3>
+<p>Now that you have committed your changes and pushed them back up to GitHub, you need to inform one of the MvcContrib committers so that they can merge your changes into the main repository. This can be done by clicking the <em>Pull Requst</em> button on your forked repository page. </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/022pullrequest.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="022-pull-request" border="0" alt="022-pull-request" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/022pullrequest_thumb.jpg" width="244" height="226" /></a>&#160; </p>
+<p>This will display a form where you can enter a message about what your changes include and allows you to choose who should receive your messages. </p>
+<p>Anyone who has forked the MvcContrib repository will appear in this list but you should only tick the &quot;mvccontrib&quot; box. This will send an email to the MvcContrib-Developers mailing list and all the committers will be immediately notified. </p>
+<p><a href="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/023pullrequestform.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="023-pull-request-form" border="0" alt="023-pull-request-form" src="http://www.jeremyskinner.co.uk/wp-content/uploads/2010/03/023pullrequestform_thumb.jpg" width="244" height="241" /></a>&#160; </p>
+<p>That&#8217;s it! Your patch will now be reviewed by one of the MvcContrib committers. If the reviewer has any questions about your patch then they may send you a message to your GitHub inbox. </p>
