@@ -1,7 +1,6 @@
 ---
 layout: post
 title: "Making TFS Suck Less with git-tfs"
-category: git
 postId: 633
 ---
 <p>As a heavy user of the <a href="http://git-scm.com/">git</a> source control&#160; system, I find it particularly painful when having to work with TFS and its centralised model of source control. I find that the lack of local commits and decent branching significantly impacts my ability to work efficiently. </p>  <p>To try and alleviate some of this pain, I recently started using the <a href="https://github.com/spraints/git-tfs">git-tfs</a> which allows you to work against a local git repository, but then push your changes up to TFS (in a similar way to how <a href="http://progit.org/book/ch8-1.html">git-svn</a> works).</p>  <p>To get started, I first downloaded git-tfs and placed the binaries in C:git-tfs, which I then added to my PATH.</p>  <p>Next, I cloned the TFS repository in to a local git repository using the quick-clone command:</p>  <pre>git tfs quick-clone http://my-tfs-server:8080 &quot;$/MyProject/Trunk&quot; MyProject</pre>

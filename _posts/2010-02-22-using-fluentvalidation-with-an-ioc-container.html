@@ -1,7 +1,6 @@
 ---
 layout: post
 title: "Using FluentValidation with an IoC Container"
-category: FluentValidation
 postId: 412
 ---
 <p>In my <a href="http://www.jeremyskinner.co.uk/2010/02/13/fluentvalidation-c4mvc-video/">recent FluentValidation presentation</a> I mentioned that if you’re going to be using FluentValidation with ASP.NET MVC then you should probably be using an <a href="http://martinfowler.com/articles/injection.html">Inversion of Control container</a> rather than using the AttributedValidatorFactory.</p>  <h3>What is a Validator Factory?</h3>  <p>A validator factory is a class responsible for creating validator instances. The IValidatorFactory interface looks like this:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:df7d18af-461a-4b42-987e-e971e3e1a3b8" class="wlWriterEditableSmartContent">

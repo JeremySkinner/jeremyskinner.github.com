@@ -1,7 +1,6 @@
 ---
 layout: post
 title: "GitAspx 0.3 Available"
-category: git
 postId: 577
 ---
 <p>Version 0.3 of <a href="http://github.com/JeremySkinner/git-dot-aspx">GitAspx</a> is now available for download.</p>  <p>GitAspx provides a way to <a href="http://www.jeremyskinner.co.uk/2010/06/25/hosting-a-git-server-under-iis7-on-windows/">host a git server using IIS</a> on Windows (git’s default http server <a href="http://www.jeremyskinner.co.uk/2010/07/31/hosting-a-git-server-under-apache-on-windows/">only runs under Apache</a>)</p>  <p>Changes in 0.3 are:</p>  <ul>   <li>Support for git’s “dumb” http protocol in addition to the smart protocol (provides read-only access for older clients)</li>    <li>Worked around an issue where jgit-based clients couldn’t clone a repository (this means that you can now use GitAspx with JetBrains TeamCity)</li> </ul>  <h3>Installation instructions</h3>  <ol>   <li>Download GitAspx from <a href="http://github.com/JeremySkinner/git-dot-aspx/downloads">the project page on GitHub</a>. </li>    <li>Unzip the contents to a directory on the filesystem (eg C:inetpubgit)</li>    <li>Create a site/application in IIS to point to the application</li>    <li>Edit the web.config file so that the <strong>RepositoriesDirectory </strong>points to wherever your git repositories are located (by default, C:Repositories)</li> </ol>  <p>GitAspx requires .NET 4 and IIS7 or later.</p>  <p>(More detailed instructions available <a href="http://www.jeremyskinner.co.uk/2010/06/25/hosting-a-git-server-under-iis7-on-windows/">on my previous post</a>)</p>

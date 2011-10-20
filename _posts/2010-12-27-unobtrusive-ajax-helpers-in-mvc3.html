@@ -1,7 +1,6 @@
 ---
 layout: post
 title: "Unobtrusive Ajax helpers in MVC3"
-category: .NET
 postId: 612
 ---
 <p>ASP.NET MVC has included Ajax helpers since its first release. These allow you to generate “ajax-enabled” html elements, such as hyperlinks or forms that submit data asynchronously. For example, you can use the Ajax.BeginForm method to construct an ajax-enabled form:</p>  <p>   <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:6892b8f4-71d6-4cfe-9c9b-9dd130b3e0fe" class="wlWriterEditableSmartContent"><pre lang="asp"><% using (Ajax.BeginForm("Save", new AjaxOptions { InsertionMode = InsertionMode.Replace, UpdateTargetId = "#myDiv" })) { %>

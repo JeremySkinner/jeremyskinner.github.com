@@ -1,7 +1,6 @@
 ---
 layout: post
 title: "The Myth of Code Coverage"
-category: 
 postId: 594
 ---
 <p>When I first started writing code with a TDD approach several years ago, I worked under the false impression that having high <a href="http://en.wikipedia.org/wiki/Code_coverage">code coverage</a> was important. I thought that in order to have a reliable and maintainable system I needed to have tests that touched every path through my codebase. </p>  <p>I used to run a coverage tool after every build to see whether the coverage percentage had gone up. If not, then it’s time to add more tests. If you have 100% code coverage and all your tests are passing, then this must surely mean that the application is doing everything correctly, right? Wrong.</p>  <p>The problem with code coverage as a metric for quality is that it’s misleading. Just because a method is covered by unit tests, it doesn’t mean that these tests are correct. As an example, imagine an application has a requirement to calculate the product of two integers, so a developer writes the following code:</p>  <p>   <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:4318B029-7F5A-4155-A9CF-329C469B73B3:984fc832-9979-4853-8f24-4d58e8a29e9f" class="wlWriterEditableSmartContent">
