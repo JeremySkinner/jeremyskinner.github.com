@@ -1,11 +1,12 @@
+{% capture timestamp %}{{ site.time | date_to_xmlschema | replace: ':','' | replace: '+', '' | replace: 'T', '' | replace: '-', '' }}{% endcapture %}
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US">
 <head profile="http://gmpg.org/xfn/11">
 	<title>Technical Jargon</title>
 	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-	<link rel="stylesheet" type="text/css" href="/content/style.css" />
+	<link rel="stylesheet" type="text/css" href="/content/style.css?t={{timestamp}}" />
 	<!--[if lte IE 6]>
-	<link rel="stylesheet" type="text/css" href="/content/ie6.css" />
+	<link rel="stylesheet" type="text/css" href="/content/ie6.css?t={{timestamp}}" />
   	<![endif]-->
 	<link rel="alternate" type="application/rss+xml" href="http://feeds.feedburner.com/TechnicalJargon" title="Technical Jargon posts RSS Feed" />
 	<link href="http://www.myopenid.com/server" rel="openid.server" />
