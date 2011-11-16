@@ -1,13 +1,3 @@
-/*
-THEME NAME: jeremy1
-THEME URI: http://www.jeremyskinner.co.uk
-DESCRIPTION: My theme
-TAGS: Jeremy
-VERSION: 1.0
-AUTHOR: Jeremy Skinner
-AUTHOR URI:
-*/
-
 body {
   font-family: Cambria, Georgia, "Times New Roman", serif;
   margin: 0;
@@ -62,8 +52,9 @@ body {
 #footer {
   clear: both;
   text-align: center;
-  color: #d9d9d9;
+  color: silver;
   padding-top: 20px;
+  font-size: 13px;
 }
 .post h2 a {
   text-decoration: none;
@@ -197,4 +188,8 @@ ul.category li.month {
   font-size: 12px;
   line-height: 1.333;
   white-space: pre;
+}
+
+#footer a {
+	color: silver;
 }
