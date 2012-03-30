@@ -1,0 +1,16 @@
+---
+layout: post
+title: "FluentValidation 3.3 available"
+---
+<p>
+	FluentValidation 3.3 is now <a href="http://fluentvalidation.codeplex.com/releases/view/85194">available to download</a>.
+</p>
+<p>This is a maintenance release contains the following changes:</p>
+<ul>
+	<li>Added additional overload for Must that accepts a PropertyValidatorContext.</li>
+	<li>Allow rules not in a RuleSet to be executed in addition to rules in a ruleset, eg: validator.Validate(instance, ruleSet: "default,MyRuleset");</li>
+	<li>Support AbstractValidator.Custom rules within top level When conditions.</li>
+	<li>Patch that adds error messages localized in Russian</li>
+	<li>Compatibility with ASP.NET MVC 4 Beta (new NuGet package ID is FluentValidation.Mvc4)</li>
+</ul>
+	
