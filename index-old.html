@@ -1,0 +1,30 @@
+---
+layout: default
+---
+
+{% for post in site.posts limit:5 %}
+  <div class="post">
+
+      <h2>
+        <a href="{{ post.url }}" title="Permalink to {{ post.title }}" rel="bookmark">{{ post.title }}</a>
+      </h2>
+
+      <p class="post-date">
+		{{ post.date | date_to_string }}
+      </p>
+
+      <div class="post-content">
+        {{ post.content }}
+       </div><!--.post-content-->
+
+      <div class="post-footer">
+
+        <p>
+
+          <a href="{{ post.url }}#respond" title="Comment on {{ post.title }}">View Comments</a>           
+      </div><!--.post-footer-->
+    </div><!-- .post -->
+    <div class="post-separator"></div>
+{% endfor %}
+
+<a href="/archive">View previous posts</a>
