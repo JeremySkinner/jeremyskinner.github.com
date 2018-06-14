@@ -13,6 +13,7 @@ body {
   background-image: URL(dropshadow.gif);
   background-repeat: repeat-x;
   height: 5px;
+  background-color: white;
 }
 #header {
   width: 950px;
