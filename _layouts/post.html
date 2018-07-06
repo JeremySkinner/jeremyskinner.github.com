@@ -1,36 +1,17 @@
 ---
 layout: default
 ---
-<div class="post">
-  <h2>{{page.title}}</h2>
-  <p class="post-date">{{page.date | date_to_string }}</p>
-</div>
-{{ content }}
-<div class="comments">
-    <div id="disqus_thread"> </div>
-<script type="text/javascript"> 
-/* <![CDATA[ */
-	var disqus_url = 'http://www.jeremyskinner.co.uk{{page.url}} ';
-	var disqus_identifier = '{{ page.postId }} http://www.jeremyskinner.co.uk{{ page.url }}';
-	var disqus_container_id = 'disqus_thread';
-	var disqus_domain = 'disqus.com';
-	var disqus_shortname = 'jeremyskinner';
-	var disqus_title = "{{ page.title }}";
-		var disqus_config = function () {
-	    	var config = this; // Access to the config object
-		};
-/* ]]> */
-</script> 
-  
-<script type="text/javascript"> 
-/* <![CDATA[ */
-(function() {
-	var dsq = document.createElement('script'); dsq.type = 'text/javascript';
-	dsq.async = true;
-	dsq.src = 'http://' + disqus_shortname + '.' + disqus_domain + '/embed.js';
-	(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-})();
-/* ]]> */
-</script> 
 
-</div>
+<article class="post">
+  <h1>{{ page.title }}</h1>
+
+  <div class="entry">
+    {{ content }}
+  </div>
+
+  <div class="date">
+    Written on {{ page.date | date: "%B %e, %Y" }}
+  </div>
+
+  {% include disqus.html %}
+</article>

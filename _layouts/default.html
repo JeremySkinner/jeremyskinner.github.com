@@ -1,126 +1,53 @@
-{% capture timestamp %}{{ site.time | date: "%Y%m%d%H%M%s" }}{% endcapture %}
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US">
-<head profile="http://gmpg.org/xfn/11">
-	<title>Technical Jargon</title>
-	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-	<link rel="stylesheet" type="text/css" href="/content/style.css?t={{timestamp}}" />
-	<!--[if lte IE 6]>
-	<link rel="stylesheet" type="text/css" href="/content/ie6.css?t={{timestamp}}" />
-  	<![endif]-->
-	<link rel="alternate" type="application/rss+xml" href="http://feeds.feedburner.com/TechnicalJargon" title="Technical Jargon posts RSS Feed" />
-	<link href="http://www.myopenid.com/server" rel="openid.server" />
-  	<link href="http://JeremySkinner.myopenid.com" rel="openid.delegate" />
-  	<link href="http://www.myopenid.com/server" rel="openid2.server" />
-  	<link href="http://JeremySkinner.myopenid.com" rel="openid2.local_id" />
-  	<link rel='index' title='Technical Jargon' href='http://www.jeremyskinner.co.uk/' /> 
-  	<link rel="stylesheet" href="http://disqus.com/stylesheets/jeremyskinner/disqus.css?v=2.0" type="text/css" media="screen" /> 
-	<!-- Version 3 -->
-</head>
-<body>
-<div id="header-container">
-	<div id="header">
-		<h1>
-			<a href="http://www.jeremyskinner.co.uk/" title="Technical Jargon" rel="home">
-         		Technical Jargon
-			</a>
-		</h1>
-		<p class="tagline">using System.DraggyDroppy;</p>
-	</div>
-	<div id="header-footer"></div>
-</div>
-<div id="container">
-	<div id="content">
-		<!--[if lte IE 6]>
-		<style type="text/css">
-		#ie6msg{border:3px solid #ff0000; margin:8px auto; background:#f9d5d6; color:#000; width: 700px;}
-		#ie6msg h4{margin:8px; padding:0;}
-		#ie6msg p{margin:8px; padding:0;}
-		#ie6msg p a.getie7{font-weight:bold; color:#006;}
-		#ie6msg p a.ie6expl{font-weight:normal; color:#006;}
-		</style>
-		<div id="ie6msg">
-		<h4>Did you know that your browser is out of date?</h4>
-		<p>You are currently running Internet Explorer version 6 or older.</p>
-		<p>To get the best possible experience on my blog, I highly recommend that you upgrade your browser to a newer version. The current version is <a class="getie7" href="http://www.microsoft.com/windows/internet-explorer/download-ie.aspx">Internet Explorer 9</a>. The upgrade is free.</p>
-		<p>If you want to you may also try some other popular Internet browsers like <a class="ie6expl" href="http://www.getfirefox.com">FireFox</a>, <a class="ie6expl" href="http://www.apple.com/safari/download/">Safari</a> or <a class="ie6expl" href="http://www.google.com/chrome">Google Chrome</a></p>
-		</div>
-		<![endif]-->
-		
-		{{ content }}
-	</div><!--#content-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{% if page.title %}{{ page.title }} – {% endif %}{{ site.name }} – {{ site.description }}</title>
 
-	<div id="sidebar">
-	  <div id="profile">
-	    <div class="profile-bits">
-	      <!-- TODO: Don't hard code this... -->
-	    </div>
-	  </div>
+    {% include meta.html %}
 
-	  <ul id="pages">
-	    <li>
-	      <h2>Pages</h2>
-	    </li>
-	    <li class="page_item"><a href="/consulting/" title="Consulting">Freelance Consulting</a></li> 
-		
-	    <li class="page_item"><a href="/git-on-windows/" title="Git on Windows">Git on Windows</a></li> 
-		<li class="page_item"><a href="/mercurial-on-iis7/" title="Mercurial on IIS7">Mercurial on IIS7</a></li>
-		<li class="page_item"><a href="/archive/" title="Previous posts">Previous posts</a></li>
-	  </ul>
-			<ul id="links">
-			    <li> 
-			      <h2>Links</h2>
-			    </li>
+    <!--[if lt IE 9]>
+      <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
 
-				<li><a href="http://FluentValidation.codeplex.com" title="Fluent Validation library for .NET">Fluent Validation</a></li> 
-				<li><a href="http://github.com/JeremySkinner">My OSS Projects</a></li> 
-			</ul>
-	 
-			  <div class="badges">
+    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800">
+    <link rel="stylesheet" type="text/css" href="{{ site.baseurl }}/style.css" />
+    <link rel="alternate" type="application/rss+xml" title="{{ site.name }} - {{ site.description }}" href="{{ site.baseurl }}/feed.xml" />
+    <!-- Created with Jekyll Now - http://github.com/barryclark/jekyll-now -->
+  </head>
 
-			    <a href="http://www.aspinsiders.com">
-			      <img src="/content/ASPInsider.gif" alt="ASP Insider" />
+  <body>
+    <div class="wrapper-masthead">
+      <div class="container">
+        <header class="masthead clearfix">
+          <a href="{{ site.baseurl }}/" class="site-avatar"><img src="{{ site.avatar }}" /></a>
 
-			    </a>
+          <div class="site-info">
+            <h1 class="site-name"><a href="{{ site.baseurl }}/">{{ site.name }}</a></h1>
+            <p class="site-description">{{ site.description }}</p>
+          </div>
 
-			    <!-- Twitter bird from http://wefunction.com/2009/05/40-free-twitter-badges/ -->
+          <nav>
+            <!-- <a href="{{ site.baseurl }}/">Blog</a>
+            <a href="{{ site.baseurl }}/about">About</a> -->
+            {% include svg-icons.html %}
+          </nav>
+        </header>
+      </div>
+    </div>
 
-			    <a href="http://twitter.com/JeremySkinner">
-			      <img src="/content/Twitter.png" alt="Follow me on Twitter" />
-			    </a>
-			  </div>
-	  
-    </div>	  
-	<div id="footer">
-		<p>(c) Jeremy Skinner 2007-2013</p>
-		<p>The contents of the posts on this site are licensed under a <br />
-			<a rel="license" href="http://creativecommons.org/licenses/by-nc/3.0/">Creative Commons Attribution-NonCommercial 3.0 Unported License</a>.
-		</p>
-		<p>
-			<a rel="license" href="http://creativecommons.org/licenses/by-nc/3.0/">
-					<img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc/3.0/88x31.png" />
-			</a>
-		</p>
-		<p>
-			Code samples are licensed under the <br /> <a rel="license" href="http://www.apache.org/licenses/LICENSE-2.0.html">Apache 2 license</a> unless otherwise specified.
-		</p>
-	
-    
-	</div>
-</div><!-- #container -->
-<script type="text/javascript">
-var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
-document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
-</script>
+    <div id="main" role="main" class="container">
+      {{ content }}
+    </div>
 
-<script type="text/javascript">
+    <div class="wrapper-footer">
+      <div class="container">
+        <footer class="footer">
+          &copy; Jeremy Skinner 2008-2018. Created with <a href="http://github.com/barryclark/jekyll-now">Jekyll Now</a>
+          <!-- {% include svg-icons.html %} -->
+        </footer>
+      </div>
+    </div>
 
-try {
-var pageTracker = _gat._getTracker("UA-12601717-2");
-pageTracker._setDomainName(".jeremyskinner.co.uk");
-pageTracker._trackPageview();
-} catch(err) {}</script>
-
-</body>
-
+    {% include analytics.html %}
+  </body>
 </html>
