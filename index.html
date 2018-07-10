@@ -1,9 +1,23 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US">
-<head profile="http://gmpg.org/xfn/11">
-	<title>jeremyskinner.co.uk</title>
-	<meta http-equiv="refresh" content="0;URL='https://github.com/JeremySkinner'" />    
-</head>
-<body>
-</body>
-</html>
+---
+layout: default
+---
+
+<div class="posts">
+  {% for post in site.posts limit:1 %}
+    <article class="post">
+
+      <h1><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></h1>
+
+      <div class="entry">
+        {{ post.excerpt }}
+      </div>
+
+      <a href="{{ site.baseurl }}{{ post.url }}" class="read-more">Read More</a>
+    </article>
+  {% endfor %}
+
+  <article class="post archive-link">
+    <a href="/archive" class="read-more">View previous posts</a>
+  </article>
+</div>
+

@@ -3,3 +3,5 @@ _site
 .tmp
 .idea/
 .sass-cache/
+.bundle/
+vendor/
