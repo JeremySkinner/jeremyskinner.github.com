@@ -5,10 +5,11 @@ pre.highlight {
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 13px;
+  font-weight: 400;
 }
 
 code {
-  font-family:'Bitstream Vera Sans Mono','Courier', monospace;
+  font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
 }
 
 .highlight .hll { background-color: #49483e }
