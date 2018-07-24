@@ -11,7 +11,7 @@ You can now validate specific properties using a full path, eg:
 
 ```csharp
 validator.Validate(customer, "Address.Line1", "Address.Line2");
-``
+```
 
 ### Validating a specific ruleset with SetValidator
 
