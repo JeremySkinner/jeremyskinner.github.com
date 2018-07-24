@@ -3,7 +3,7 @@ layout: post
 title: "FluentValidation 8.0-rc1 is now available"
 ---
 
-FluentValidation 8.0-rc1 is now available. This release contains several breaking changes and feature enhancements:
+FluentValidation 8.0-rc1 is now available and can be [downloaded from nuget](https://www.nuget.org/packages/FluentValidation/8.0.0-rc1) This release contains several breaking changes and feature enhancements:
 
 ### Validating properties by path
 
