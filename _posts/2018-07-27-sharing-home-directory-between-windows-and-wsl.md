@@ -1,5 +1,5 @@
 ---
-title: "Sharing a home directory between Windows and WSL"
+title: "Using the same Home Directory in Windows and WSL"
 layout: post
 ---
 
