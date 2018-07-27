@@ -11,6 +11,11 @@ layout: default
       <div class="entry">
         {{ post.content }}
       </div>
+      
+      <div class="date">
+        <a href="{{ site.baseurl }}{{ post.url }}" class="read-more">Written on {{ page.date | date: "%B %e, %Y" }}</a>     
+      </div>
+
 
       <!--<a href="{{ site.baseurl }}{{ post.url }}" class="read-more">Read More</a>-->
     </article>
