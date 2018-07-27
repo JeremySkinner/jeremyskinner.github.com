@@ -5,7 +5,7 @@ layout: post
 
 I've recently been using the [Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/about) a lot more recently now that I'm working with Linux servers.
 
-One thing I've found frustrating is having to keep my home directories in sync, for example having to duplicate my ssh keys between my Windows home directory in `c:\users\Jeremy\.ssh" and my WSL installation in `\home\jeremy\.ssh", along with various other files like `.gitconfig`.
+One thing I've found frustrating is having to keep my home directories in sync, for example having to duplicate my ssh keys between my Windows home directory in `c:\users\Jeremy\.ssh` and my WSL installation in `\home\jeremy\.ssh`, along with various other files like `.gitconfig`.
 
 It turns out it's actually pretty straight forward to set WSL to use your Windows home directory. 
 
