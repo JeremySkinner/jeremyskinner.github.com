@@ -7,7 +7,7 @@ I currently use [appveyor](https://appveyor.com) to run Continuous Integration b
 
 For example, for FluentValidation I want the master branch to be built against the current LTS version of the .NET Core SDK (2.1.400), and I want my vNext branch to build against 2.2-preview1. But appveyor only has version 2.1.300 installed, so both branches need a new version of the .NET SDK.
 
-Based on [this post](https://andrewlock.net/building-asp-net-core-2-0-preview-2-packages-on-appveyor/) by Andrew Lock, I updated the FluentValidation build script to download an install a newer .NET Core SDK if needed. The build script uses powershell with the (posh-build)[https://github.com/jeremyskinner/posh-build] helpers for defining targets:
+Based on [this post](https://andrewlock.net/building-asp-net-core-2-0-preview-2-packages-on-appveyor/) by Andrew Lock, I updated the FluentValidation build script to download an install a newer .NET Core SDK if needed. The build script uses powershell with the [posh-build](https://github.com/jeremyskinner/posh-build) helpers for defining targets:
 
 ```powershell
 target install-dotnet-core {
