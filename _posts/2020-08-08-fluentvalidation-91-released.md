@@ -101,6 +101,10 @@ public MyValidator() {
 }
 ```
 
+### Async test helper
+
+The [test helper](https://docs.fluentvalidation.net/en/latest/testing.html) now has asynchronous overloads available.
+
 The existing `StopOnFirstFailure` option will remain unchanged for backwards compatibility, but has been marked as deprecated.
 
 [View the full release notes to see other fixes](https://github.com/FluentValidation/FluentValidation/releases/tag/9.1.0).
