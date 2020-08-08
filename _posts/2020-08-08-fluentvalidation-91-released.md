@@ -10,7 +10,7 @@ FluentValidation 9.1 is [now available](https://nuget.org/packages/fluentvalidat
 FluentValidation has several overloads of its `Validate` method which have caused some confusion. For example, the overload that accepted a `params` array of property names has been in place since very early releases, 
 which allowed for validating only specific properties with `validator.Validate(instance, "Forename", "Surname")` 
 
-However, this called ambiguity when we later introduced [rule sets](https://docs.fluentvalidation.net/en/latest/rulesets.html) back in version 3.0as you had to use a named parameter so as not to conflict with the proprety-name overload above:
+However, this called ambiguity when we later introduced [rule sets](https://docs.fluentvalidation.net/en/latest/rulesets.html) back in version 3.0 as you had to use a named parameter so as not to conflict with the property-name overload above:
 
 ```csharp
 validator.Validate(instance, ruleSet: "MyRuleSet");
