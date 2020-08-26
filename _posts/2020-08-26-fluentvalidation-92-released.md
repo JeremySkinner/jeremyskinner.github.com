@@ -11,7 +11,7 @@ FluentValidation 9.2 contains the new Inheritance Validator, which allows you to
 
 For example, imaging the following example:
 
-```
+```csharp
 // We have an interface that represents a 'contact',
 // for example in a CRM system. All contacts must have a name and email.
 public interface IContact {
